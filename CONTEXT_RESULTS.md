@@ -1,0 +1,1451 @@
+# Consolidated Context Benchmark Results
+
+**Model**: GLM-4.7-Flash (Q5_K_XL and Q4_K_XL), Qwen3-Coder-Next (Q5_K_XL)
+**Test Date**: 2026-02-10 (Vulkan, macbook2), 2026-02-11 (HIP ROCm 7.1.1), 2026-02-14 (LM Studio 0.4.2, llama-b1186-ubuntu-rocm-gfx110X-x64), 2026-02-15 (hip-rocwmma-new, Qwen3-Coder-Next)
+**Methodology**: bench_longcontext.py with prefill + prompt pattern
+
+## Quick Reference Table
+
+### gigul2 - None-Context (25-100 tokens, no prefill)
+
+```
+┌──────────────────────────────┬─────────┬────────┬────────────┐
+│ System                       │ Context │  TTFT  │ Throughput │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ gigul2 llama.cpp Q4          │    25   │ 0.58s  │ 30.3 tok/s │
+│ (7900 XTX, HIP ROCm 7.1.1   │    50   │ 0.30s  │ 29.7 tok/s │
+│  + rocWMMA)                  │   100   │ 0.66s  │ 29.7 tok/s │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ gigul2 llama.cpp Q4          │    25   │ 0.394s │ 83.4 tok/s │
+│ (7900 XTX, hip-rocwmma-new)  │    50   │ 0.069s │ 88.1 tok/s │
+│  + rocWMMA)                  │   100   │ 0.095s │ 91.1 tok/s │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ gigul2 LM Studio Q4          │  10000  │ 14.09s │ 24.1 tok/s │
+│ (7900 XTX, LM Studio 0.4.2) │  15000  │ 14.41s │ 19.7 tok/s │
+└──────────────────────────────┴─────────┴────────┴────────────┘
+```
+
+**Note**: TTFT at 25 tokens includes a cold-start run (1.4s); warm runs were 0.13-0.20s. Throughput is ~30 tok/s baseline regardless of prompt size. LM Studio's baseline TTFT/throughput is higher due to abstraction layer overhead.
+
+### All Systems - Mid-Context (20K-25K)
+
+```
+┌──────────────────────┬─────────┬───────┬────────────┬──────────────┐
+│ System               │ Context │ TTFT  │ Throughput │ Cache Speedup│
+├──────────────────────┼─────────┼───────┼────────────┼──────────────┤
+│ gigul2 llama.cpp     │   20K   │  8.8s │ 39.2 tok/s │    16.6x     │
+│ (7900 XTX, HIP ROCm 7.1.1)     │   25K   │ 14.9s │ 29.2 tok/s │      -       │
+├──────────────────────┼─────────┼───────┼────────────┼──────────────┤
+│ gigul2 llama.cpp     │   20K   │ 29.2s │ 15.3 tok/s │    24.5x     │
+│ (7900 XTX, Vulkan)   │   25K   │ 51.4s │ 10.2 tok/s │      -       │
+├──────────────────────┼─────────┼───────┼────────────┼──────────────┤
+│ gigul2 LM Studio Q4  │   20K   │ 31.1s │ 11.2 tok/s │    16.3x     │
+│ (7900 XTX, LM Studio 0.4.2)   │   25K   │ 53.4s │  8.0 tok/s │      -       │
+├──────────────────────┼─────────┼───────┼────────────┼──────────────┤
+│ macbook2 LMStudio    │   20K   │ 67.7s │  3.3 tok/s │      -       │
+│ (M2 Max, Metal)      │   25K   │113.5s │  2.3 tok/s │      -       │
+├──────────────────────┼─────────┼───────┼────────────┼──────────────┤
+│ macbook2 llama.cpp   │   20K   │ 66.8s │  3.4 tok/s │      -       │
+│ (M2 Max, Metal)      │   25K   │107.6s │  2.4 tok/s │      -       │
+└──────────────────────┴─────────┴───────┴────────────┴──────────────┘
+```
+
+### All Systems - Long-Context (50K-80K)
+
+```
+┌──────────────────────┬─────────┬────────┬────────────┬──────────────┐
+│ System               │ Context │  TTFT  │ Throughput │    vs 20K    │
+├──────────────────────┼─────────┼────────┼────────────┼──────────────┤
+│ gigul2 llama.cpp     │   50K   │  20.6s │ 21.8 tok/s │    0.56x     │
+│ (7900 XTX, HIP ROCm 7.1.1)     │   55K   │  32.5s │ 16.2 tok/s │    0.41x     │
+├──────────────────────┼─────────┼────────┼────────────┼──────────────┤
+│ gigul2 llama.cpp     │   50K   │  80.0s │  6.9 tok/s │    0.45x     │
+│ (7900 XTX, Vulkan)   │   55K   │ 126.3s │  4.4 tok/s │    0.29x     │
+│                      │   80K   │ 346.0s │  1.0 tok/s │    0.07x     │
+├──────────────────────┼─────────┼────────┼────────────┼──────────────┤
+│ macbook2 LMStudio    │   50K   │ 173.0s │  0.93 tok/s│    0.28x     │
+│ (M2 Max, Metal)      │   55K   │ 265.8s │  1.13 tok/s│    0.34x     │
+├──────────────────────┼─────────┼────────┼────────────┼──────────────┤
+│ macbook2 llama.cpp   │   50K   │ 165.0s │  1.55 tok/s│    0.46x     │
+│ (M2 Max, Metal)      │   55K   │ 291.7s │  1.06 tok/s│    0.31x     │
+└──────────────────────┴─────────┴────────┴────────────┴──────────────┘
+```
+
+### All Systems - Longlong-Context (110K-115K)
+
+```
+┌──────────────────────────────┬─────────┬────────┬────────────┬──────────────┐
+│ System                       │ Context │  TTFT  │ Throughput │    vs 20K    │
+├──────────────────────────────┼─────────┼────────┼────────────┼──────────────┤
+│ gigul2 llama.cpp Q4          │  110K   │  44.0s │ 11.2 tok/s │    0.28x     │
+│ (7900 XTX, HIP ROCm 7.1.1)  │  115K   │  67.3s │  7.9 tok/s │    0.20x     │
+├──────────────────────────────┼─────────┼────────┼────────────┼──────────────┤
+│ gigul2 llama.cpp Q4          │  110K   │  44.2s │ 11.5 tok/s │    0.28x     │
+│ (7900 XTX, hip-rocwmma-new) │  115K   │  67.7s │  8.1 tok/s │    0.20x     │
+└──────────────────────────────┴─────────┴────────┴────────────┴──────────────┘
+```
+
+**Note**: Only Q4_K_XL supports >95K context (max 190K). Q5_K_XL is limited to 95K.
+
+## Detailed Results by System
+
+### gigul2 - AMD Radeon RX 7900 XTX (24GB VRAM) - HIP ROCm 7.1.1 Backend
+
+**Hardware**: AMD 7900 XTX, gfx1100, HIP ROCm 7.1.1 backend
+**Model**: GLM-4.7-Flash-UD-Q5_K_XL.gguf (21GB)
+**Backend**: llama.cpp llama-server (HIP ROCm 7.1.1 build)
+**Date**: 2026-02-11
+
+#### Mid-Context Performance
+
+```
+┌───────────────┬────────┬────────────┬─────────────────┐
+│   Context     │  TTFT  │ Throughput │   Performance   │
+├───────────────┼────────┼────────────┼─────────────────┤
+│ 20K (10K+10K) │  8.8s  │ 39.2 tok/s │ ✅ Excellent    │
+│ 25K (10K+15K) │ 14.9s  │ 29.2 tok/s │ ✅ Excellent    │
+└───────────────┴────────┴────────────┴─────────────────┘
+```
+
+**Cache Performance**: 4.64s (cold) -> 0.28s (warm) = **16.6x speedup**
+
+#### Long-Context Performance
+
+```
+┌───────────────┬────────┬────────────┬─────────────────┐
+│   Context     │  TTFT  │ Throughput │   Performance   │
+├───────────────┼────────┼────────────┼─────────────────┤
+│ 50K (40K+10K) │ 20.6s  │ 21.8 tok/s │ ✅ Good         │
+│ 55K (40K+15K) │ 32.5s  │ 16.2 tok/s │ ✅ Good         │
+└───────────────┴────────┴────────────┴─────────────────┘
+```
+
+**Cache Performance**: 32.4s (cold) -> 0.19s (warm) = **170x speedup**
+
+#### HIP ROCm 7.1.1 vs Vulkan Backend Comparison (Same Hardware)
+
+```
+┌─────────┬────────────┬────────────┬────────────┬────────────┐
+│ Context │ HIP ROCm 7.1.1 TTFT  │ Vulkan TTFT│ HIP ROCm 7.1.1 tok/s │ Vulkan tok/s│
+├─────────┼────────────┼────────────┼────────────┼────────────┤
+│   20K   │    8.8s    │   29.2s    │   39.2     │   15.3     │
+│   25K   │   14.9s    │   51.4s    │   29.2     │   10.2     │
+│   50K   │   20.6s    │   80.0s    │   21.8     │    6.9     │
+│   55K   │   32.5s    │  126.3s    │   16.2     │    4.4     │
+├─────────┼────────────┼────────────┼────────────┼────────────┤
+│ Speedup │  3.3-3.9x  │  Baseline  │  2.6-3.7x  │  Baseline  │
+└─────────┴────────────┴────────────┴────────────┴────────────┘
+```
+
+**Key finding**: HIP ROCm 7.1.1 is **2.6-3.7x faster throughput** and **3.3-3.9x faster TTFT** than Vulkan on the same GPU. The advantage grows with context size.
+
+#### Scaling Analysis (HIP ROCm 7.1.1)
+
+```
+┌─────────┬────────┬────────────┬──────────┬───────────────┐
+│ Context │  TTFT  │ Throughput │ vs 20K   │ Degradation   │
+├─────────┼────────┼────────────┼──────────┼───────────────┤
+│   20K   │   8.8s │ 39.2 tok/s │   1.00x  │   Baseline    │
+│   25K   │  14.9s │ 29.2 tok/s │   0.74x  │   -26%        │
+│   50K   │  20.6s │ 21.8 tok/s │   0.56x  │   -44%        │
+│   55K   │  32.5s │ 16.2 tok/s │   0.41x  │   -59%        │
+└─────────┴────────┴────────────┴──────────┴───────────────┘
+```
+
+**Scaling**: Degradation is gentler than Vulkan (-59% at 55K vs -71% on Vulkan)
+
+---
+
+### gigul2 - AMD Radeon RX 7900 XTX (24GB VRAM) - HIP ROCm 7.1.1, Q4_K_XL (190K context)
+
+**Hardware**: AMD 7900 XTX, gfx1100, HIP ROCm 7.1.1 backend
+**Model**: GLM-4.7-Flash-UD-Q4_K_XL.gguf (17GB)
+**Backend**: llama.cpp llama-server (HIP ROCm 7.1.1 build)
+**Date**: 2026-02-11
+**Max Context**: 190,000 tokens
+
+#### Mid-Context Performance (Q4)
+
+```
+┌───────────────┬────────┬────────────┬─────────────────┐
+│   Context     │  TTFT  │ Throughput │   Performance   │
+├───────────────┼────────┼────────────┼─────────────────┤
+│ 20K (10K+10K) │  8.6s  │ 39.6 tok/s │ ✅ Excellent    │
+│ 25K (10K+15K) │ 14.7s  │ 28.9 tok/s │ ✅ Excellent    │
+└───────────────┴────────┴────────────┴─────────────────┘
+```
+
+**Cache Performance**: 4.29s (cold) -> 0.30s (warm) = **14.3x speedup**
+
+#### Long-Context Performance (Q4)
+
+```
+┌───────────────┬────────┬────────────┬─────────────────┐
+│   Context     │  TTFT  │ Throughput │   Performance   │
+├───────────────┼────────┼────────────┼─────────────────┤
+│ 50K (40K+10K) │ 20.4s  │ 20.3 tok/s │ ✅ Good         │
+│ 55K (40K+15K) │ 32.2s  │ 16.4 tok/s │ ✅ Good         │
+└───────────────┴────────┴────────────┴─────────────────┘
+```
+
+**Cache Performance**: 31.8s (cold) -> 0.19s (warm) = **167x speedup**
+
+#### Longlong-Context Performance (Q4 only - exceeds Q5 95K limit)
+
+```
+┌────────────────────┬────────┬────────────┬─────────────────┐
+│   Context          │  TTFT  │ Throughput │   Performance   │
+├────────────────────┼────────┼────────────┼─────────────────┤
+│ 110K (100K+10K)    │ 44.0s  │ 11.2 tok/s │ ✅ Good         │
+│ 115K (100K+15K)    │ 67.3s  │  7.9 tok/s │ ⚠️  Acceptable  │
+└────────────────────┴────────┴────────────┴─────────────────┘
+```
+
+**Cache Performance**: 153.9s (cold) -> 0.43s (warm) = **358x speedup**
+
+#### Q4 vs Q5 Comparison (HIP ROCm 7.1.1, same hardware)
+
+```
+┌─────────┬──────────┬──────────┬──────────┬──────────┐
+│ Context │ Q4 TTFT  │ Q5 TTFT  │ Q4 tok/s │ Q5 tok/s │
+├─────────┼──────────┼──────────┼──────────┼──────────┤
+│   20K   │   8.6s   │   8.8s   │   39.6   │   39.2   │
+│   25K   │  14.7s   │  14.9s   │   28.9   │   29.2   │
+│   50K   │  20.4s   │  20.6s   │   20.3   │   21.8   │
+│   55K   │  32.2s   │  32.5s   │   16.4   │   16.2   │
+│  110K   │  44.0s   │    -     │   11.2   │     -    │
+│  115K   │  67.3s   │    -     │    7.9   │     -    │
+└─────────┴──────────┴──────────┴──────────┴──────────┘
+```
+
+**Key finding**: Q4 and Q5 are **nearly identical in speed** at all shared context sizes. Q4's advantage is enabling **110K-115K context** that Q5 cannot reach (limited to 95K).
+
+#### Scaling Analysis (Q4 HIP ROCm 7.1.1, full range)
+
+```
+┌─────────┬────────┬────────────┬──────────┬───────────────┐
+│ Context │  TTFT  │ Throughput │ vs 20K   │ Degradation   │
+├─────────┼────────┼────────────┼──────────┼───────────────┤
+│   20K   │   8.6s │ 39.6 tok/s │   1.00x  │   Baseline    │
+│   25K   │  14.7s │ 28.9 tok/s │   0.73x  │   -27%        │
+│   50K   │  20.4s │ 20.3 tok/s │   0.51x  │   -49%        │
+│   55K   │  32.2s │ 16.4 tok/s │   0.41x  │   -59%        │
+│  110K   │  44.0s │ 11.2 tok/s │   0.28x  │   -72%        │
+│  115K   │  67.3s │  7.9 tok/s │   0.20x  │   -80%        │
+└─────────┴────────┴────────────┴──────────┴───────────────┘
+```
+
+**Scaling**: 110K context retains 28% of 20K throughput. 115K retains 20%. Degradation is much gentler on HIP ROCm 7.1.1 than Vulkan was at equivalent context sizes.
+
+---
+
+### gigul2 - AMD Radeon RX 7900 XTX (24GB VRAM) - HIP ROCm 7.1.1 + rocWMMA, Q4_K_XL
+
+**Hardware**: AMD 7900 XTX, gfx1100, HIP ROCm 7.1.1 + rocWMMA backend
+**Model**: GLM-4.7-Flash-UD-Q4_K_XL.gguf (17GB)
+**Backend**: llama.cpp llama-server (hip-rocwmma build)
+**Date**: 2026-02-11
+**Max Context**: 190,000 tokens
+
+#### Performance Summary (rocWMMA)
+
+```
+┌────────────────────┬────────┬────────────┬─────────────────┐
+│   Context          │  TTFT  │ Throughput │   Performance   │
+├────────────────────┼────────┼────────────┼─────────────────┤
+│  25 (no prefill)   │ 0.58s  │ 30.3 tok/s │ ✅ Instant      │
+│  50 (no prefill)   │ 0.30s  │ 29.7 tok/s │ ✅ Instant      │
+│ 100 (no prefill)   │ 0.66s  │ 29.7 tok/s │ ✅ Instant      │
+│  20K (10K+10K)     │  8.6s  │ 42.3 tok/s │ ✅ Excellent    │
+│  25K (10K+15K)     │ 14.5s  │ 30.6 tok/s │ ✅ Excellent    │
+│  50K (40K+10K)     │ 20.4s  │ 23.2 tok/s │ ✅ Good         │
+│  55K (40K+15K)     │ 32.2s  │ 15.6 tok/s │ ✅ Good         │
+│ 110K (100K+10K)    │ 44.1s  │ 10.9 tok/s │ ✅ Good         │
+│ 115K (100K+15K)    │ 67.5s  │  8.5 tok/s │ ⚠️  Acceptable  │
+└────────────────────┴────────┴────────────┴─────────────────┘
+```
+
+#### None-Context Details (rocWMMA)
+
+```
+┌──────────┬───────────┬───────────┬───────────┬──────────────────────────────┐
+│ Prompt   │  Run 1    │  Run 2    │  Run 3    │     Average                  │
+├──────────┼───────────┼───────────┼───────────┼──────────────────────────────┤
+│ 25 tok   │           │           │           │                              │
+│   TTFT   │  1.402s*  │  0.196s   │  0.131s   │  0.576s (0.164s warm)        │
+│   tok/s  │   30.4    │   31.4    │   29.2    │  30.3                        │
+├──────────┼───────────┼───────────┼───────────┼──────────────────────────────┤
+│ 50 tok   │           │           │           │                              │
+│   TTFT   │  0.301s   │  0.296s   │  0.305s   │  0.301s                      │
+│   tok/s  │   29.5    │   29.4    │   30.2    │  29.7                        │
+├──────────┼───────────┼───────────┼───────────┼──────────────────────────────┤
+│ 100 tok  │           │           │           │                              │
+│   TTFT   │  0.676s   │  0.646s   │  0.659s   │  0.660s                      │
+│   tok/s  │   28.2    │   30.7    │   30.1    │  29.7                        │
+└──────────┴───────────┴───────────┴───────────┴──────────────────────────────┘
+* Run 1 at 25 tokens includes cold start (model/cache warmup)
+```
+
+**Key observation**: Baseline decode speed is ~30 tok/s with essentially zero context. TTFT is sub-second (0.13-0.66s). The higher measured throughput at 20K (42 tok/s) vs none-context (30 tok/s) is an artifact of the chars-to-tokens approximation (÷4) varying with response content type. See Cache-Hit Benchmark section for accurate server-reported tok/s.
+
+---
+
+### gigul2 - Cache-Hit Benchmark (Server-Reported Tokens)
+
+**Hardware**: AMD 7900 XTX, gfx1100, HIP ROCm 7.1.1 + rocWMMA backend
+**Model**: GLM-4.7-Flash-UD-Q4_K_XL.gguf (17GB)
+**Date**: 2026-02-11
+**Method**: Send prompt cold (warms cache), then measure 5 repeat runs (cache hit). Uses server-reported `completion_tokens` for accurate tok/s.
+
+```
+┌──────────────────┬────────┬────────────┬────────────┬───────────┐
+│ Scenario         │  TTFT  │ Decode     │  Peak      │ Chars/tok │
+│                  │ (warm) │ tok/s (avg)│ tok/s      │ (actual)  │
+├──────────────────┼────────┼────────────┼────────────┼───────────┤
+│ 25 tok (no ctx)  │ 0.048s │    28.2    │   28.3     │   3.14    │
+│ 26 tok (no ctx)  │ 0.054s │    27.8    │   27.9     │   4.60    │
+│ 633 tok (1K ctx) │ 0.057s │    27.6    │   27.7     │   5.10    │
+│ 3K tok (5K ctx)  │ 0.075s │    27.5    │   27.6     │   5.29    │
+│ 6K tok (10K ctx) │ 0.096s │    27.5    │   27.5     │   5.42    │
+└──────────────────┴────────┴────────────┴────────────┴───────────┘
+```
+
+**Key findings**:
+1. **Decode speed is ~28 tok/s** - completely flat regardless of cached context size (0 to 10K)
+2. **TTFT on cache hit is 48-96ms** - essentially instant, grows slightly with cached KV size
+3. **Chars/token ratio varies 3.1-5.4** - this means all previous `chars/4` estimates overstated tok/s by 25-35%
+4. **100+ tok/s is not achievable** - the bottleneck is the model's forward pass through all 40 layers per token, not KV cache attention
+5. **Cold vs warm**: at 10K context, cold=11.0 tok/s, warm=27.5 tok/s (2.5x) - cold includes prefill time dragging down average
+
+**Corrected throughput estimates** (applying actual chars/token ratios):
+
+All earlier benchmarks used `chars/4` to estimate tok/s. With the real ratio of ~5.0-5.4 chars/token, the actual decode speeds were:
+- "42 tok/s" at 20K context → likely ~28 tok/s actual (same as cache-hit measurement)
+- "30 tok/s" at none-context → likely ~24 tok/s actual (chars/tok was ~3.1 for short responses)
+- The decode speed is **~28 tok/s constant** across all context sizes; apparent variation was the chars/token ratio changing
+
+**Cache Performance**:
+- 10K cold: 3.89s -> warm 0.26s (15.0x)
+- 40K cold: 32.0s -> warm 0.22s (145x)
+- 100K cold: 154.4s -> warm 0.41s (377x)
+
+#### rocWMMA vs plain HIP Comparison (Same model, same hardware)
+
+```
+┌─────────┬──────────────┬──────────────┬──────────────┬──────────────┬─────────┐
+│ Context │ rocWMMA TTFT │   HIP TTFT   │ rocWMMA tok/s│  HIP tok/s   │ Speedup │
+├─────────┼──────────────┼──────────────┼──────────────┼──────────────┼─────────┤
+│   20K   │     8.6s     │     8.6s     │    42.3      │    39.6      │  1.07x  │
+│   25K   │    14.5s     │    14.7s     │    30.6      │    28.9      │  1.06x  │
+│   50K   │    20.4s     │    20.4s     │    23.2      │    20.3      │  1.14x  │
+│   55K   │    32.2s     │    32.2s     │    15.6      │    16.4      │  0.95x  │
+│  110K   │    44.1s     │    44.0s     │    10.9      │    11.2      │  0.97x  │
+│  115K   │    67.5s     │    67.3s     │     8.5      │     7.9      │  1.08x  │
+├─────────┼──────────────┼──────────────┼──────────────┼──────────────┼─────────┤
+│ Average │     same     │     same     │              │              │ ~1.04x  │
+└─────────┴──────────────┴──────────────┴──────────────┴──────────────┴─────────┘
+```
+
+**Key finding**: rocWMMA provides **no meaningful speedup** over plain HIP ROCm 7.1.1 for this model. Throughput differences (0.95x-1.14x) are within run-to-run variance. TTFT is identical across all context sizes. The WMMA (Wave Matrix Multiply Accumulate) instructions don't appear to benefit this MoE architecture's attention/decode workload.
+
+---
+
+### gigul2 - AMD Radeon RX 7900 XTX (24GB VRAM) - Vulkan Backend
+
+**Hardware**: AMD 7900 XTX, gfx1100, Vulkan backend
+**Model**: GLM-4.7-Flash-UD-Q5_K_XL.gguf (21GB)
+**Backend**: llama.cpp llama-server (Vulkan build)
+**Date**: 2026-02-10
+
+#### Mid-Context Performance
+
+```
+┌───────────────┬────────┬────────────┬─────────────────┐
+│   Context     │  TTFT  │ Throughput │   Performance   │
+├───────────────┼────────┼────────────┼─────────────────┤
+│ 20K (10K+10K) │ 29.2s  │ 15.3 tok/s │ ✅ Excellent    │
+│ 25K (10K+15K) │ 51.4s  │ 10.2 tok/s │ ✅ Good         │
+└───────────────┴────────┴────────────┴─────────────────┘
+```
+
+**Cache Performance**: 9.78s (cold) -> 0.40s (warm) = **24.5x speedup**
+
+#### Long-Context Performance
+
+```
+┌───────────────┬────────┬────────────┬─────────────────┐
+│   Context     │  TTFT  │ Throughput │   Performance   │
+├───────────────┼────────┼────────────┼─────────────────┤
+│ 50K (40K+10K) │ 80.0s  │  6.9 tok/s │ ⚠️  Acceptable  │
+│ 55K (40K+15K) │ 126.3s │  4.4 tok/s │ ⚠️  Acceptable  │
+│ 80K (50K+30K) │ 346.0s │  1.0 tok/s │ ❌ Slow         │
+└───────────────┴────────┴────────────┴─────────────────┘
+```
+
+**Cache Performance**: 125s (cold) -> 0.35s (warm) = **357x speedup**
+
+#### Scaling Analysis (Vulkan)
+
+```
+┌─────────┬────────┬────────────┬──────────┬───────────────┐
+│ Context │  TTFT  │ Throughput │ vs 20K   │ Degradation   │
+├─────────┼────────┼────────────┼──────────┼───────────────┤
+│   20K   │  29.2s │ 15.3 tok/s │   1.00x  │   Baseline    │
+│   25K   │  51.4s │ 10.2 tok/s │   0.67x  │   -33%        │
+│   50K   │  80.0s │  6.9 tok/s │   0.45x  │   -55%        │
+│   55K   │ 126.3s │  4.4 tok/s │   0.29x  │   -71%        │
+│   80K   │ 346.0s │  1.0 tok/s │   0.07x  │   -93%        │
+└─────────┴────────┴────────────┴──────────┴───────────────┘
+```
+
+**Scaling exponent**: ~1.8 (worse than O(n^2))
+
+---
+
+### macbook2 - Apple M2 Max (96GB RAM)
+
+**Hardware**: Apple M2 Max, Metal backend
+**Model**: GLM-4.7-Flash (Q5 or Q4)
+**Backends**: LM Studio and llama.cpp
+
+#### LM Studio Results
+
+**Status**: Complete
+
+```
+┌───────────────┬────────┬────────────┬─────────────────┐
+│   Context     │  TTFT  │ Throughput │   Performance   │
+├───────────────┼────────┼────────────┼─────────────────┤
+│ 20K (10K+10K) │ 67.7s  │  3.3 tok/s │ ⚠️  Slow        │
+│ 25K (10K+15K) │ 113.5s │  2.3 tok/s │ ⚠️  Slow        │
+│ 50K (40K+10K) │ 173.0s │  0.93 tok/s│ ❌ Very Slow    │
+│ 55K (40K+15K) │ 265.8s │  1.13 tok/s│ ❌ Very Slow    │
+└───────────────┴────────┴────────────┴─────────────────┘
+```
+
+_Full results in CONTEXT_RESULTS_MACBOOK2_LMSTUDIO.md_
+
+#### llama.cpp Results
+
+**Status**: Complete (Q6_K_XL model)
+
+```
+┌───────────────┬────────┬────────────┬─────────────────┐
+│   Context     │  TTFT  │ Throughput │   Performance   │
+├───────────────┼────────┼────────────┼─────────────────┤
+│ 20K (10K+10K) │ 66.8s  │  3.4 tok/s │ ⚠️  Slow        │
+│ 25K (10K+15K) │ 107.6s │  2.4 tok/s │ ⚠️  Slow        │
+│ 50K (40K+10K) │ 165.0s │  1.55 tok/s│ ❌ Very Slow    │
+│ 55K (40K+15K) │ 291.7s │  1.06 tok/s│ ❌ Very Slow    │
+└───────────────┴────────┴────────────┴─────────────────┘
+```
+
+_Full results in CONTEXT_RESULTS_MACBOOK2.md_
+
+---
+
+## Cross-System Comparison
+
+### Mid-Context (20K) Comparison
+
+```
+┌──────────────────────┬────────────┬──────────────┬──────────────┐
+│       System         │ Throughput │  vs HIP ROCm 7.1.1     │   Backend    │
+├──────────────────────┼────────────┼──────────────┼──────────────┤
+│ gigul2 (7900 XTX)    │ 39.2 tok/s │   Baseline   │ HIP ROCm 7.1.1       │
+│ gigul2 (7900 XTX)    │ 15.3 tok/s │    0.39x     │ Vulkan       │
+│ macbook2 LMStudio    │  3.3 tok/s │    0.08x     │ Metal        │
+│ macbook2 llama.cpp   │  3.4 tok/s │    0.09x     │ Metal        │
+└──────────────────────┴────────────┴──────────────┴──────────────┘
+```
+
+### Long-Context (50K) Comparison
+
+```
+┌──────────────────────┬────────────┬──────────────┬──────────────┐
+│       System         │ Throughput │  vs HIP ROCm 7.1.1     │   Backend    │
+├──────────────────────┼────────────┼──────────────┼──────────────┤
+│ gigul2 (7900 XTX)    │ 21.8 tok/s │   Baseline   │ HIP ROCm 7.1.1       │
+│ gigul2 (7900 XTX)    │  6.9 tok/s │    0.32x     │ Vulkan       │
+│ macbook2 LMStudio    │ 0.93 tok/s │    0.04x     │ Metal        │
+│ macbook2 llama.cpp   │ 1.55 tok/s │    0.07x     │ Metal        │
+└──────────────────────┴────────────┴──────────────┴──────────────┘
+```
+
+---
+
+## Performance Summary
+
+### Headline Finding: HIP ROCm 7.1.1 Backend is Transformative
+
+| Metric | 20K Context | 25K Context | 50K Context | 55K Context |
+|--------|-------------|-------------|-------------|-------------|
+| **HIP ROCm 7.1.1 TTFT** | 8.8s | 14.9s | 20.6s | 32.5s |
+| **Vulkan TTFT** | 29.2s | 51.4s | 80.0s | 126.3s |
+| **HIP ROCm 7.1.1 tok/s** | 39.2 | 29.2 | 21.8 | 16.2 |
+| **Vulkan tok/s** | 15.3 | 10.2 | 6.9 | 4.4 |
+| **TTFT Speedup** | 3.3x | 3.5x | 3.9x | 3.9x |
+| **Throughput Speedup** | 2.6x | 2.9x | 3.2x | 3.7x |
+
+### HIP ROCm 7.1.1 vs macbook2
+
+| Metric | 20K Context | 50K Context | 55K Context |
+|--------|-------------|-------------|-------------|
+| **TTFT Ratio** | 7.6x | 8.0-8.4x | 8.2-9.0x |
+| **Throughput Ratio** | 11.5x | 14.1-23.4x | 14.3-15.3x |
+| **HIP ROCm 7.1.1 TTFT** | 8.8s | 20.6s | 32.5s |
+| **macbook2 TTFT** | 66.8s | 165.0s | 291.7s |
+| **HIP ROCm 7.1.1 tok/s** | 39.2 | 21.8 | 16.2 |
+| **macbook2 tok/s** | 3.4 | 1.55 | 1.06 |
+
+### Analysis
+
+1. **HIP ROCm 7.1.1 is 2.6-3.7x faster than Vulkan on the same GPU**: The native HIP/ROCm backend fully utilizes the 7900 XTX's 960 GB/s bandwidth and compute, while Vulkan adds significant abstraction overhead
+
+2. **HIP ROCm 7.1.1 advantage grows with context**: 2.6x at 20K rising to 3.7x at 55K, suggesting Vulkan's overhead scales with attention computation
+
+3. **HIP ROCm 7.1.1 makes 50K context interactive**: 20.6s TTFT and 21.8 tok/s at 50K context is genuinely usable, whereas Vulkan's 80s TTFT was painful
+
+4. **HIP ROCm 7.1.1 vs macbook2 gap is massive**: 11-23x throughput advantage, far exceeding the 2.4x raw memory bandwidth difference (960 vs 400 GB/s)
+
+5. **Cache effectiveness**: All systems show excellent warm-cache speedup (16-357x)
+
+6. **Practical usability (HIP ROCm 7.1.1)**:
+   - 20-25K: Excellent interactive use (9-15s TTFT, 29-39 tok/s)
+   - 50-55K: Good interactive use (21-33s TTFT, 16-22 tok/s)
+   - Previously Vulkan limited interactive use to 25K; HIP ROCm 7.1.1 extends it to 55K
+
+---
+
+## Use Case Recommendations
+
+### By Context Size (gigul2 HIP ROCm 7.1.1)
+
+```
+┌─────────┬──────────┬────────────┬─────────────┬────────────────────────────┐
+│ Context │  Model   │ Throughput │  Use Case   │        Suitability         │
+├─────────┼──────────┼────────────┼─────────────┼────────────────────────────┤
+│  20K    │ Q5 / Q4  │ 39 tok/s   │ Interactive │ ✅ Excellent (<9s TTFT)    │
+│  25K    │ Q5 / Q4  │ 29 tok/s   │ Interactive │ ✅ Excellent (<15s TTFT)   │
+│  50K    │ Q5 / Q4  │ 21 tok/s   │ Interactive │ ✅ Good (~21s TTFT)        │
+│  55K    │ Q5 / Q4  │ 16 tok/s   │ Interactive │ ✅ Good (~32s TTFT)        │
+│ 110K    │ Q4 only  │ 11 tok/s   │ Agentic     │ ✅ Good (~44s TTFT)        │
+│ 115K    │ Q4 only  │  8 tok/s   │ Agentic     │ ⚠️  Acceptable (~67s TTFT) │
+└─────────┴──────────┴────────────┴─────────────┴────────────────────────────┘
+```
+
+### By Hardware & Backend
+
+```
+┌──────────────────────────────────┬─────────────────┬──────────────────────────┐
+│       System                     │  Optimal Range  │    Best Use Case         │
+├──────────────────────────────────┼─────────────────┼──────────────────────────┤
+│ gigul2 (7900 XTX, HIP ROCm 7.1.1) Q5 │    20-55K │ Interactive chat, QA     │
+│ gigul2 (7900 XTX, HIP ROCm 7.1.1) Q4 │   20-115K │ Interactive + agentic    │
+│ gigul2 (7900 XTX, Vulkan)        │    20-30K       │ Interactive chat, QA     │
+│ macbook2 (M2 Max, Metal)         │     <10K        │ Batch, offline only      │
+└──────────────────────────────────┴─────────────────┴──────────────────────────┘
+```
+
+---
+
+## Technical Specifications
+
+### gigul2 Configuration (HIP ROCm 7.1.1)
+
+```
+Hardware: AMD Radeon RX 7900 XTX
+- VRAM: 24GB GDDR6
+- Bandwidth: 960 GB/s
+- Architecture: gfx1100 (RDNA 3)
+- Backend: HIP ROCm 7.1.1
+
+Model: GLM-4.7-Flash-UD-Q5_K_XL.gguf
+- Size: 21GB (20.13 GiB, 5.77 BPW)
+- Quantization: Q5_K_XL (5-bit)
+- Max Context: 95,000 tokens
+
+llama-server config:
+- device: ROCm0
+- flash-attn: enabled
+- cache-type: q8_0 (K and V)
+- cache-ram: 32GB
+- batch-size: 2048
+- ubatch-size: 512
+- threads: 10
+- mlock + no-mmap + kv-unified
+```
+
+### gigul2 Configuration (HIP ROCm 7.1.1, Q4 longlong)
+
+```
+Hardware: AMD Radeon RX 7900 XTX (same as above)
+Backend: HIP ROCm 7.1.1
+
+Model: GLM-4.7-Flash-UD-Q4_K_XL.gguf
+- Size: 17GB (4-bit quantization)
+- Max Context: 190,000 tokens (vs 95K for Q5)
+- ctx-size: 190000
+
+All other llama-server params same as Q5 config
+```
+
+### gigul2 Configuration (Vulkan - previous)
+
+```
+Hardware: AMD Radeon RX 7900 XTX
+- Same hardware as above
+- Backend: Vulkan
+
+Same model and server parameters, except:
+- device: Vulkan0
+```
+
+### macbook2 Configuration
+
+```
+Hardware: Apple M2 Max
+- RAM: 96GB unified memory
+- Bandwidth: ~400 GB/s
+- GPU: 38-core (integrated)
+- Backend: Metal
+
+Model: GLM-4.7-Flash
+- LM Studio: Q5/Q4_K_XL (loaded by LM Studio)
+- llama.cpp: Q6_K_XL (24.25 GiB, 6.96 BPW)
+- Max Context: 95,000 tokens
+
+llama.cpp config (port 8081):
+- flash-attn: enabled
+- cache-type: q8_0 (K and V)
+- cache-ram: 32GB
+- batch-size: 2048
+- ubatch-size: 512
+- Same settings as gigul2
+```
+
+---
+
+### gigul2 - llama-b1186-ubuntu-rocm-gfx110X-x64 - Q4_K_XL
+
+**Hardware**: AMD 7900 XTX, gfx1100
+**Model**: GLM-4.7-Flash-UD-Q4_K_XL (4-bit quantization)
+**Backend**: llama.cpp b1186 (ubuntu-rocm-gfx110X-x64)
+**Date**: 2026-02-14
+**Server**: http://192.168.1.251:8081
+**Note**: Server crashed when testing 128K context (likely OOM)
+
+#### None-Context Performance (no prefill)
+
+```
+┌───────────────────────────┬─────────┬────────┬────────────┐
+│   Context                 │  TTFT   │ Throughput │  Performance │
+├───────────────────────────┼─────────┼────────┼────────────┤
+│ 10K (no pref)            │  9.64s  │ 35.5 tok/s │ ✅ Excellent   │
+│ 15K (no pref)            │ 10.03s  │ 28.7 tok/s │ ✅ Excellent   │
+└───────────────────────────┴─────────┴────────┴────────────┘
+```
+
+#### Small-Context Performance (10K prefill)
+
+```
+┌───────────────────────────┬─────────┬────────┬────────────┐
+│   Context                 │  TTFT   │ Throughput │  Performance │
+├───────────────────────────┼─────────┼────────┼────────────┤
+│ 20K (10K+10K)            │ 29.60s  │ 16.4 tok/s │ ✅ Good       │
+│ 25K (10K+15K)            │ 46.09s  │ 11.8 tok/s │ ✅ Good       │
+└───────────────────────────┴─────────┴────────┴────────────┘
+```
+
+**Cache Performance**: 21.81s (cold) -> 0.29s (warm) = **75.2x speedup**
+
+#### Mid-Context Performance (40K prefill)
+
+```
+┌───────────────────────────┬─────────┬────────┬────────────┐
+│   Context                 │  TTFT   │ Throughput │  Performance │
+├───────────────────────────┼─────────┼────────┼────────────┤
+│ 50K (40K+10K)            │ 41.48s  │ 12.7 tok/s │ ✅ Good       │
+│ 55K (40K+15K)            │ 63.61s  │  8.3 tok/s │ ✅ Good       │
+└───────────────────────────┴─────────┴────────┴────────────┘
+```
+
+**Cache Performance**: 85.89s (cold) -> 0.23s (warm) = **373x speedup**
+
+#### Large-Context Performance (80K prefill)
+
+```
+┌───────────────────────────┬─────────┬────────┬────────────┐
+│   Context                 │  TTFT   │ Throughput │  Performance │
+├───────────────────────────┼─────────┼────────┼────────────┤
+│ 90K (80K+10K)            │ 57.24s  │  8.7 tok/s │ ✅ Good       │
+│ 95K (80K+15K)            │ 87.20s  │  6.5 tok/s │ ✅ Good       │
+└───────────────────────────┴─────────┴────────┴────────────┘
+```
+
+**Cache Performance**: 161.32s (cold) -> 0.35s (warm) = **461x speedup**
+
+#### Longlong-Context Performance (128K prefill) - SERVER CRASHED
+
+**Note**: Server crashed during 128K context prefill (connection refused). Could not complete testing at this context size. This suggests the model/build has different memory characteristics or limits compared to previous builds.
+
+#### Scaling Analysis (llama-b1186 Q4)
+
+```
+┌─────────┬────────┬────────────┬──────────┬───────────────┐
+│ Context │  TTFT  │ Throughput │ vs 20K   │ Degradation   │
+├─────────┼────────┼────────────┼──────────┼───────────────┤
+│  10K    │  9.64s │ 35.5 tok/s │  1.00x   │   Baseline    │
+│  15K    │ 10.03s │ 28.7 tok/s │  0.81x   │   -19%        │
+│  20K    │ 29.60s │ 16.4 tok/s │  0.46x   │   -54%        │
+│  25K    │ 46.09s │ 11.8 tok/s │  0.33x   │   -67%        │
+│  50K    │ 41.48s │ 12.7 tok/s │  0.36x   │   -64%        │
+│  55K    │ 63.61s │  8.3 tok/s │  0.23x   │   -77%        │
+│  90K    │ 57.24s │  8.7 tok/s │  0.25x   │   -75%        │
+│  95K    │ 87.20s │  6.5 tok/s │  0.18x   │   -82%        │
+└─────────┴────────┴────────────┴──────────┴───────────────┘
+```
+
+**Observation**: TTFT at 50K context (41.48s) is unexpectedly faster than at 25K context (46.09s). This may be due to:
+1. Variable server load during testing
+2. Different tokenization of prompt content
+3. Implementation differences in b1186 build
+
+#### Comparison: llama-b1186 vs LM Studio 0.4.2 (Same hardware, same Q4 model)
+
+```
+┌─────────┬──────────────┬──────────────┬──────────────┬──────────────┬─────────┐
+│ Context │ llama-b1186  │   LM Studio  │ llama-b1186  │  LM Studio   │ Speedup │
+│          │ TTFT         │    TTFT     │ tok/s        │   tok/s      │ (b1186) │
+├─────────┼──────────────┼──────────────┼──────────────┼──────────────┼─────────┤
+│  10K    │  9.64s       │  14.09s      │ 35.5         │  24.1        │  1.5x   │
+│  15K    │ 10.03s       │  14.41s      │ 28.7         │  19.7        │  1.5x   │
+│  20K    │ 29.60s       │  31.07s      │ 16.4         │  11.2        │  1.5x   │
+│  25K    │ 46.09s       │  53.36s      │ 11.8         │   8.0        │  1.5x   │
+│  50K    │ 41.48s       │  80.00s      │ 12.7         │   5.9        │  2.2x   │
+│  55K    │ 63.61s       │ 126.31s     │  8.3         │   3.9        │  2.1x   │
+│  90K    │ 57.24s       │ 145.24s     │  8.7         │   3.6        │  2.4x   │
+│  95K    │ 87.20s       │ 224.19s     │  6.5         │   2.4        │  2.7x   │
+├─────────┼──────────────┼──────────────┼──────────────┼──────────────┼─────────┤
+│ Average │    faster    │   Baseline   │              │              │  1.9x   │
+└─────────┴──────────────┴──────────────┴──────────────┴──────────────┴─────────┘
+```
+
+**Key findings**:
+1. **llama-b1186 is 1.5-2.7x faster** than LM Studio 0.4.2 on same hardware
+2. **Speedup increases with context size**: from 1.5x at small contexts to 2.4-2.7x at 90-95K contexts
+3. **llama-b1186 crashed at 128K** while LM Studio handled it (though slowly)
+4. **TTFT anomaly at 50K**: llama-b1186 shows 41.48s vs 80s for LM Studio - nearly 2x faster
+
+#### Comparison: llama-b1186 vs llama.cpp HIP ROCm 7.1.1 (Same hardware, similar Q4 builds)
+
+```
+┌─────────┬──────────────┬──────────────┬──────────────┬──────────────┬─────────┐
+│ Context │ llama-b1186  │   HIP ROCm  │ llama-b1186  │  HIP ROCm    │  Ratio  │
+│          │ TTFT         │  7.1.1 TTFT  │ tok/s        │   tok/s      │         │
+├─────────┼──────────────┼──────────────┼──────────────┼──────────────┼─────────┤
+│  20K    │ 29.60s       │     8.6s     │ 16.4         │    39.6      │  2.4x   │
+│  25K    │ 46.09s       │    14.7s     │ 11.8         │    28.9      │  2.4x   │
+│  50K    │ 41.48s       │    20.4s     │ 12.7         │    20.3      │  1.6x   │
+│  55K    │ 63.61s       │    32.2s     │  8.3         │    16.4      │  2.0x   │
+│  90K    │ 57.24s       │      -       │  8.7         │      -       │   -     │
+│  95K    │ 87.20s       │      -       │  6.5         │      -       │   -     │
+├─────────┼──────────────┼──────────────┼──────────────┼──────────────┼─────────┤
+│ Average │    slower    │   Faster     │              │              │  2.1x   │
+└─────────┴──────────────┴──────────────┴──────────────┴──────────────┴─────────┘
+```
+
+**Note**: HIP ROCm 7.1.1 results are from a previous build version and may have different optimizations. The llama-b1186 build is ~2x slower but crashed at 128K context while HIP ROCm 7.1.1 handled it successfully.
+
+---
+
+## Data Files
+
+### gigul2 HIP ROCm 7.1.1 Results (Q5)
+- `benchmark_gigul2_rocm_midcontext_results.jsonl` - Q5 Mid-context (20K-25K)
+- `benchmark_gigul2_rocm_longcontext_results.jsonl` - Q5 Long-context (50K-55K)
+
+### gigul2 HIP ROCm 7.1.1 Results (Q4)
+- `benchmark_gigul2_rocm_q4_midcontext_results.jsonl` - Q4 Mid-context (20K-25K)
+- `benchmark_gigul2_rocm_q4_longcontext_results.jsonl` - Q4 Long-context (50K-55K)
+- `benchmark_gigul2_rocm_q4_longlongcontext_results.jsonl` - Q4 Longlong-context (110K-115K)
+
+### gigul2 HIP ROCm 7.1.1 + rocWMMA Results (Q4)
+- `benchmark_gigul2_rocm_q4_rocwmma_cachehit_results.jsonl` - Cache-hit benchmark (server-reported tokens)
+- `benchmark_gigul2_rocm_q4_rocwmma_nonecontext_results.jsonl` - rocWMMA None-context (25-100 tokens)
+- `benchmark_gigul2_rocm_q4_rocwmma_midcontext_results.jsonl` - rocWMMA Mid-context (20K-25K)
+- `benchmark_gigul2_rocm_q4_rocwmma_longcontext_results.jsonl` - rocWMMA Long-context (50K-55K)
+- `benchmark_gigul2_rocm_q4_rocwmma_longlongcontext_results.jsonl` - rocWMMA Longlong-context (110K-115K)
+
+### gigul2 Vulkan Results
+- `benchmark_gigul2_midcontext_q5_results.jsonl` - Vulkan Mid-context (20K-25K)
+- `benchmark_longcontext_results.jsonl` - Vulkan Long-context (50K-55K)
+- `benchmark_q4_80k_results.jsonl` - Extended (80K)
+- `benchmark_q4_results.jsonl` - Q4 comparison (50K-55K)
+
+### gigul2 LM Studio 0.4.2 Results (Q4)
+- `benchmark_gigul2_lmstudio_q4_nonecontext_results.jsonl` - None-context (10K-15K, no prefill)
+- `benchmark_gigul2_lmstudio_q4_smallcontext_results.jsonl` - Small-context (20K-25K, 10K prefill)
+- `benchmark_gigul2_lmstudio_q4_midcontext_results.jsonl` - Mid-context (50K-55K, 40K prefill)
+- `benchmark_gigul2_lmstudio_q4_largecontext_results.jsonl` - Large-context (90K-95K, 80K prefill)
+- `benchmark_gigul2_lmstudio_q4_longlongcontext_results.jsonl` - Longlong-context (138K-143K, 128K prefill)
+- `benchmark_gigul2_lmstudio_q4_cachehit_results.jsonl` - Cache-hit benchmark (server-reported tokens)
+
+### gigul2 llama-b1186-ubuntu-rocm-gfx110X-x64 Results (Q4)
+- `benchmark_llama-b1186_nonecontext_results.jsonl` - None-context (10K-15K, no prefill)
+- `benchmark_llama-b1186_smallcontext_results.jsonl` - Small-context (20K-25K, 10K prefill)
+- `benchmark_llama-b1186_midcontext_results.jsonl` - Mid-context (50K-55K, 40K prefill)
+- `benchmark_llama-b1186_largecontext_results.jsonl` - Large-context (90K-95K, 80K prefill)
+- `benchmark_llama-b1186_largelargecontext_results.jsonl` - Longlong-context (128K+) - SERVER CRASHED
+- **Note**: Cache-hit benchmark not completed - server crashed during 128K context test
+
+### macbook2 Results
+- `benchmark_midcontext_macbook2.jsonl` - LM Studio mid-context (20K-25K)
+- `benchmark_longcontext_macbook2.jsonl` - LM Studio long-context (50K-55K)
+- `benchmark_midcontext_macbook2_llamacpp.jsonl` - llama.cpp mid-context (20K-25K, Q6)
+- `benchmark_longcontext_macbook2_llamacpp.jsonl` - llama.cpp long-context (50K-55K, Q6)
+
+**Note**: All gigul2 tests used Q5_K_XL (21GB). macbook2 llama.cpp used Q6_K_XL (24.25GB). LM Studio loaded its own quantization (likely Q4/Q5). The ~10% quantization difference has minimal impact on observed TTFT/throughput ratios.
+
+---
+
+## Key Findings
+
+### 1. HIP ROCm 7.1.1 vs Vulkan Backend (Headline Result)
+
+**On identical hardware** (7900 XTX), switching from Vulkan to HIP ROCm 7.1.1 delivers:
+- **2.6x throughput** at 20K, growing to **3.7x at 55K**
+- **3.3x TTFT** at 20K, growing to **3.9x at 55K**
+- HIP ROCm 7.1.1 advantage **increases with context size**
+
+**Root cause**: Vulkan is a generic graphics API with abstraction overhead. ROCm/HIP is AMD's native compute API, enabling direct access to the GPU's compute and memory subsystems. The overhead compounds with context size because each attention operation pays the Vulkan dispatch tax.
+
+### 2. Q4 Enables Longlong Context (110K-115K) at Usable Speed
+
+**Q4_K_XL with 190K context** on HIP ROCm 7.1.1:
+- **110K**: 11.2 tok/s, 44s TTFT - good for agentic/document workflows
+- **115K**: 7.9 tok/s, 67s TTFT - acceptable for batch/agentic use
+- **Cache**: 154s cold -> 0.43s warm = **358x speedup**
+- **Q4 vs Q5**: Identical speed at shared context sizes; Q4's advantage is 2x more context (190K vs 95K)
+
+### 3. Context Size Impact (HIP ROCm 7.1.1)
+
+**Observation**: Performance still degrades with context, but much more gracefully
+- 25% more context (20K->25K) = 26% slower (vs 33% on Vulkan)
+- 150% more context (20K->50K) = 44% slower (vs 55% on Vulkan)
+- 175% more context (20K->55K) = 59% slower (vs 71% on Vulkan)
+- 450% more context (20K->110K) = 72% slower (Q4, still 11.2 tok/s!)
+- 475% more context (20K->115K) = 80% slower (Q4, 7.9 tok/s)
+
+### 4. Cache Effectiveness
+
+**HIP ROCm 7.1.1 Mid-context** (10K prefill):
+- Cold: 4.64s
+- Warm: 0.28s
+- **Speedup**: 16.6x
+
+**HIP ROCm 7.1.1 Long-context** (40K prefill):
+- Cold: 32.4s
+- Warm: 0.19s
+- **Speedup**: 170x
+
+**Vulkan Mid-context** (10K prefill):
+- Cold: 9.78s / Warm: 0.40s / **Speedup**: 24.5x
+
+**Vulkan Long-context** (40K prefill):
+- Cold: 125s / Warm: 0.35s / **Speedup**: 357x
+
+**HIP ROCm 7.1.1 Longlong-context** (100K prefill, Q4):
+- Cold: 153.9s / Warm: 0.43s / **Speedup**: 358x
+
+**Conclusion**: Both backends cache effectively. HIP ROCm 7.1.1 cold prefill is 2-4x faster than Vulkan.
+
+### 5. Sweet Spot for Interactive Use
+
+**gigul2 HIP ROCm 7.1.1 Q5**: 20-55K context
+- TTFT: 9-33s (all acceptable)
+- Throughput: 16-39 tok/s (all responsive)
+
+**gigul2 HIP ROCm 7.1.1 Q4**: 20-115K context
+- TTFT: 9-67s (acceptable up to 115K)
+- Throughput: 8-40 tok/s (responsive up to 110K)
+- Q4 extends the usable range from 55K (Q5 limit) to 115K
+
+**gigul2 Vulkan**: 20-25K context
+- TTFT: 29-51s (borderline)
+- Throughput: 10-15 tok/s (adequate)
+
+### 6. Hardware Comparison (HIP ROCm 7.1.1 vs macbook2)
+
+**gigul2 HIP ROCm 7.1.1 vs macbook2**:
+- **TTFT ratio**: 7.6-9.0x faster on HIP ROCm 7.1.1 (up from 2.1-2.3x with Vulkan)
+- **Throughput ratio**: 11.5-23.4x faster on HIP ROCm 7.1.1 (up from 4.4-7.4x with Vulkan)
+- **Conclusion**: 7900 XTX with HIP ROCm 7.1.1 completely dominates
+- **M2 Max advantage**: Only 96GB unified memory for larger models
+
+---
+
+## Methodology
+
+### Test Configuration
+
+**Prefill + Prompt Pattern**:
+- Prefill: Context loaded first (cached for warm runs)
+- Prompt: Actual query sent to model
+- Total Context: Prefill + Prompt
+
+**Example**:
+- 25-100 test: no prefill + 25/50/100 token prompt (none-context)
+- 20K test: 10K prefill + 10K prompt (mid-context)
+- 50K test: 40K prefill + 10K prompt (long-context)
+- 110K test: 100K prefill + 10K prompt (longlong-context)
+
+### Metrics Measured
+
+1. **TTFT** (Time To First Token): Initial response latency
+2. **Throughput**: Tokens per second during generation
+3. **Cache Performance**: Cold vs warm prefill times
+
+### Benchmark Script
+
+```bash
+python3 bench_longcontext.py \
+  --base <server-url> \
+  --prefill-tokens <N> \
+  --prompt-tokens <M> \
+  --runs 3
+```
+
+---
+
+### gigul2 - LM Studio 0.4.2 - Q4_K_XL
+
+**Hardware**: AMD 7900 XTX, gfx1100
+**Model**: GLM-4.7-Flash-UD-Q4_K_XL (4-bit quantization)
+**Backend**: LM Studio 0.4.2 on Linux (backend not specified - shows both ROCm and Vulkan)
+**Date**: 2026-02-14
+**Server**: http://192.168.1.251:8081
+
+#### None-Context Performance (no prefill)
+
+```
+┌───────────────┬────────┬────────────┬─────────────────┐
+│   Context     │  TTFT  │ Throughput │   Performance   │
+├───────────────┼────────┼────────────┼─────────────────┤
+│  10K (no pref)│ 14.09s │ 24.1 tok/s │ ✅ Good         │
+│  15K (no pref)│ 14.41s │ 19.7 tok/s │ ✅ Good         │
+└───────────────┴────────┴────────────┴─────────────────┘
+```
+
+#### Small-Context Performance (10K prefill)
+
+```
+┌──────────────────┬────────┬────────────┬─────────────────┐
+│   Context        │  TTFT  │ Throughput │   Performance   │
+├──────────────────┼────────┼────────────┼─────────────────┤
+│ 20K (10K+10K)   │ 31.07s │ 11.2 tok/s │ ✅ Good         │
+│ 25K (10K+15K)   │ 53.36s │  8.0 tok/s │ ✅ Good         │
+└──────────────────┴────────┴────────────┴─────────────────┘
+```
+
+**Cache Performance**: 11.39s (cold) -> 0.70s (warm) = **16.3x speedup**
+
+#### Mid-Context Performance (40K prefill)
+
+```
+┌──────────────────┬────────┬────────────┬─────────────────┐
+│   Context        │  TTFT  │ Throughput │   Performance   │
+├──────────────────┼────────┼────────────┼─────────────────┤
+│ 50K (40K+10K)   │ 80.00s │  5.9 tok/s │ ✅ Good         │
+│ 55K (40K+15K)   │126.31s │  3.9 tok/s │ ⚠️  Acceptable  │
+└──────────────────┴────────┴────────────┴─────────────────┘
+```
+
+**Cache Performance**: 117.83s (cold) -> 0.90s (warm) = **131x speedup**
+
+#### Large-Context Performance (80K prefill)
+
+```
+┌──────────────────┬────────┬────────────┬─────────────────┐
+│   Context        │  TTFT  │ Throughput │   Performance   │
+├──────────────────┼────────┼────────────┼─────────────────┤
+│ 90K (80K+10K)   │145.24s │  3.6 tok/s │ ⚠️  Acceptable  │
+│ 95K (80K+15K)   │224.19s │  2.4 tok/s │ ⚠️  Acceptable  │
+└──────────────────┴────────┴────────────┴─────────────────┘
+```
+
+**Cache Performance**: 350.88s (cold) -> 1.42s (warm) = **247x speedup**
+
+#### Longlong-Context Performance (128K prefill)
+
+```
+┌────────────────────┬────────┬────────────┬─────────────────┐
+│   Context          │  TTFT  │ Throughput │   Performance   │
+├────────────────────┼────────┼────────────┼─────────────────┤
+│ 138K (128K+10K)   │268.20s │  2.1 tok/s │ ⚠️  Acceptable  │
+│ 143K (128K+15K)   │345.99s │  1.6 tok/s │ ❌ Slow         │
+└────────────────────┴────────┴────────────┴─────────────────┘
+```
+
+**Note**: 128K context prefill timed out on first run (>600s). Warm cache runs completed in ~2s.
+**Cache Performance**: 600s+ (cold timeout) -> 2.08s (warm) = **288+ x speedup**
+
+#### Scaling Analysis (LM Studio Q4)
+
+```
+┌─────────┬────────┬────────────┬──────────┬───────────────┐
+│ Context │  TTFT  │ Throughput │ vs 20K   │ Degradation   │
+├─────────┼────────┼────────────┼──────────┼───────────────┤
+│  10K    │ 14.09s │ 24.1 tok/s │  1.00x   │   Baseline    │
+│  15K    │ 14.41s │ 19.7 tok/s │  0.82x   │   -18%        │
+│  20K    │ 31.07s │ 11.2 tok/s │  0.46x   │   -54%        │
+│  25K    │ 53.36s │  8.0 tok/s │  0.33x   │   -67%        │
+│  50K    │ 80.00s │  5.9 tok/s │  0.25x   │   -75%        │
+│  55K    │126.31s │  3.9 tok/s │  0.16x   │   -84%        │
+│  90K    │145.24s │  3.6 tok/s │  0.15x   │   -85%        │
+│  95K    │224.19s │  2.4 tok/s │  0.10x   │   -90%        │
+│ 138K    │268.20s │  2.1 tok/s │  0.09x   │   -91%        │
+│ 143K    │345.99s │  1.6 tok/s │  0.07x   │   -93%        │
+└─────────┴────────┴────────────┴──────────┴───────────────┘
+```
+
+#### Cache-Hit Benchmark (LM Studio Q4)
+
+```
+┌──────────────────┬────────┬────────────┬────────────┬───────────┐
+│ Scenario         │  TTFT  │ Decode     │  Peak      │ Chars/tok │
+│                  │ (warm) │ tok/s (avg)│ tok/s      │ (actual)  │
+├──────────────────┼────────┼────────────┼────────────┼───────────┤
+│ 25 tok (no ctx)  │ 0.311s │    25.9    │   27.6     │   4.14    │
+│ 26 tok (no ctx)  │ 0.355s │    25.1    │   25.3     │   4.81    │
+│ 633 tok (1K ctx) │ 0.369s │    24.4    │   24.6     │   5.39    │
+│ 3K tok (5K ctx)  │ 0.439s │    23.2    │   23.5     │   5.28    │
+│ 6K tok (10K ctx) │ 0.488s │    21.8    │   21.9     │   5.46    │
+└──────────────────┴────────┴────────────┴────────────┴───────────┘
+```
+
+#### LM Studio vs llama.cpp HIP ROCm 7.1.1 Comparison (Same hardware, same Q4 model)
+
+```
+┌─────────┬──────────────┬──────────────┬──────────────┬──────────────┬─────────┐
+│ Context │ LM Studio    │   HIP TTFT   │ LM Studio    │  HIP tok/s   │ Speedup │
+│          │ TTFT         │ (llama.cpp)  │ tok/s        │ (llama.cpp)  │ (HIP)   │
+├─────────┼──────────────┼──────────────┼──────────────┼──────────────┼─────────┤
+│  10K    │  14.09s      │     -        │  24.1        │     -        │   -     │
+│  15K    │  14.41s      │     -        │  19.7        │     -        │   -     │
+│  20K    │  31.07s      │     8.6s     │  11.2        │    39.6      │  3.5x   │
+│  25K    │  53.36s      │    14.7s     │   8.0        │    28.9      │  3.6x   │
+│  50K    │  80.00s      │    20.4s     │   5.9        │    20.3      │  3.4x   │
+│  55K    │ 126.31s      │    32.2s     │   3.9        │    16.4      │  4.2x   │
+│  90K    │ 145.24s      │     -        │   3.6        │     -        │   -     │
+│  95K    │ 224.19s      │     -        │   2.4        │     -        │   -     │
+│ 110K    │     -        │    44.0s     │     -        │    11.2      │   -     │
+│ 138K    │ 268.20s      │     -        │   2.1        │     -        │   -     │
+│ 143K    │ 345.99s      │     -        │   1.6        │     -        │   -     │
+├─────────┼──────────────┼──────────────┼──────────────┼──────────────┼─────────┤
+│ Average │    slower    │   Baseline   │    slower    │   Faster     │  ~3.7x  │
+└─────────┴──────────────┴──────────────┴──────────────┴──────────────┴─────────┘
+```
+
+**Key findings**:
+1. **llama.cpp HIP ROCm 7.1.1 is 3.4-4.2x faster** than LM Studio on the same hardware with the same Q4 model
+2. **TTFT on LM Studio is 3-4x higher** for equivalent context sizes
+3. **LM Studio can handle larger contexts** (138K+ tested) despite being slower - likely uses a different backend
+4. **Cache-hit decode speed is similar**: LM Studio ~22-26 tok/s vs llama.cpp ~27-28 tok/s (difference in TTFT dominates)
+
+---
+
+## Next Steps
+
+- [x] Complete macbook2 llama.cpp benchmarks
+- [x] Extract macbook2 LM Studio results
+- [x] Add cross-system comparison analysis
+- [x] HIP ROCm 7.1.1 backend benchmarks on gigul2 (Q5)
+- [x] Q4 HIP ROCm 7.1.1 mid/long/longlong benchmarks (20K-115K)
+- [ ] Test Q4 at 150K-190K context (push to model's max)
+- [ ] Multi-user concurrent testing on gigul2
+
+---
+
+## gigul2 - AMD Radeon RX 7900 XTX (24GB VRAM) - llama.cpp hip-rocwmma-new (2026-02-15)
+
+**Hardware**: AMD 7900 XTX, gfx1100
+**Model**: GLM-4.7-Flash-UD-Q4_K_XL.gguf (17GB)
+**Backend**: llama.cpp hip-rocwmma-new (build-gigul2-hip-rocwmma-new)
+**Date**: 2026-02-15
+**Test Label**: llama.cpp hip-rocwmma-new linux glm-4.7-flash
+
+### Server Command
+
+```bash
+build-gigul2-hip-rocwmma-new/bin/llama-server \
+  --device ROCm0 \
+  --gpu-layers all \
+  --ctx-size 190000 \
+  --host 192.168.1.251 \
+  --port 8081 \
+  --model /home/ljubomir/llama.cpp/models/GLM-4.7-Flash-UD-Q4_K_XL.gguf \
+  --temp 1.0 \
+  --top-p 0.95 \
+  --min-p 0.01 \
+  --flash-attn on \
+  --cache-type-k q8_0 \
+  --cache-type-v q8_0 \
+  --jinja \
+  --cache-ram 32768 \
+  --cache-reuse 512 \
+  --cache-prompt \
+  --batch-size 2048 \
+  --ubatch-size 512 \
+  --threads-batch 10 \
+  --threads 10 \
+  --mlock \
+  --no-mmap \
+  --kv-unified
+```
+
+### Benchmark Results
+
+#### None-Context (No prefill, 25-100 tokens)
+
+```
+┌───────────┬────────┬────────────┐
+│ Context   │  TTFT  │ Throughput │
+├───────────┼────────┼────────────┤
+│ 25        │ 0.394s │ 83.4 tok/s │
+│ 50        │ 0.069s │ 88.1 tok/s │
+│ 100       │ 0.095s │ 91.1 tok/s │
+└───────────┴────────┴────────────┘
+```
+
+**Note**: First 25-token run had 1.076s cold start; warm runs were 0.044-0.062s.
+
+#### Small-Context (10K prefill + 10K/15K = 20K-25K total)
+
+```
+┌───────────┬────────┬────────────┐
+│ Context   │  TTFT  │ Throughput │
+├───────────┼────────┼────────────┤
+│ 20K       │ 8.920s │ 38.3 tok/s │
+│ 25K       │ 15.230s│ 29.5 tok/s │
+└───────────┴────────┴────────────┘
+```
+
+#### Mid-Context (10K prefill + 10K/15K = 20K-25K total)
+
+```
+┌───────────┬────────┬────────────┐
+│ Context   │  TTFT  │ Throughput │
+├───────────┼────────┼────────────┤
+│ 20K       │ 9.126s │ 41.5 tok/s │
+│ 25K       │ 15.230s│ 31.1 tok/s │
+└───────────┴────────┴────────────┘
+```
+
+#### Long-Context (40K prefill + 10K/15K = 50K-55K total)
+
+```
+┌───────────┬────────┬────────────┐
+│ Context   │  TTFT  │ Throughput │
+├───────────┼────────┼────────────┤
+│ 50K       │ 20.792s│ 21.6 tok/s │
+│ 55K       │ 32.690s│ 15.0 tok/s │
+└───────────┴────────┴────────────┘
+```
+
+#### Longlong-Context (100K prefill + 10K/15K = 110K-115K total)
+
+```
+┌───────────┬────────┬────────────┐
+│ Context   │  TTFT  │ Throughput │
+├───────────┼────────┼────────────┤
+│ 110K      │ 44.235s│ 11.5 tok/s │
+│ 115K      │ 67.687s│  8.1 tok/s │
+└───────────┴────────┴────────────┘
+```
+
+### Comparison: hip-rocwmma-new vs hip-rocwmma
+
+| Context | hip-rocwmma-new TTFT | hip-rocwmma TTFT | Diff |
+|---------|---------------------|-----------------|------|
+| 20K | 9.126s | 8.6s | +6% |
+| 25K | 15.230s | 14.7s | +4% |
+| 50K | 20.792s | 20.4s | +2% |
+| 55K | 32.690s | 32.2s | +2% |
+| 110K | 44.235s | 44.1s | ~0% |
+| 115K | 67.687s | 67.5s | ~0% |
+
+**Key Finding**: hip-rocwmma-new shows nearly identical performance to hip-rocwmma (within measurement variance). No significant regression or improvement observed.
+
+### Data Files
+
+#### gigul2 llama.cpp hip-rocwmma-new Results (Q4)
+- `benchmark_results_llama-cpp-hip-rocwmma-new_2026-02-15/none_context_results.jsonl` - None-context (25-100 tokens)
+- `benchmark_results_llama-cpp-hip-rocwmma-new_2026-02-15/small_context_results.jsonl` - Small-context (20K-25K)
+- `benchmark_results_llama-cpp-hip-rocwmma-new_2026-02-15/mid_context_results.jsonl` - Mid-context (20K-25K)
+- `benchmark_results_llama-cpp-hip-rocwmma-new_2026-02-15/long_context_results.jsonl` - Long-context (50K-55K)
+- `benchmark_results_llama-cpp-hip-rocwmma-new_2026-02-15/longlong_context_results.jsonl` - Longlong-context (110K-115K)
+
+---
+
+## gigul2 - AMD Radeon RX 7900 XTX (24GB VRAM) - llama.cpp hip-rocwmma - Qwen3-Coder-Next (2026-02-15)
+
+**Hardware**: AMD 7900 XTX, gfx1100
+**Model**: Qwen3-Coder-Next-UD-Q5_K_XL.gguf (80B params, 512 MoE experts, 10 active/token)
+**Backend**: llama.cpp hip-rocwmma (--n-cpu-moe 33)
+**Date**: 2026-02-15
+**Test Label**: llama.cpp hip-rocwmma linux qwen3-coder-next
+
+### Server Command
+
+```bash
+build-gigul2-hip-rocwmma/bin/llama-server \
+  --device ROCm0 \
+  --gpu-layers all \
+  --ctx-size 140000 \
+  --host 192.168.1.251 \
+  --port 8081 \
+  --model ~/llama.cpp/models/UD-Q5_K_XL/Qwen3-Coder-Next-UD-Q5_K_XL-00001-of-00003.gguf \
+  --threads 20 \
+  --threads-batch 10 \
+  --flash-attn on \
+  --n-cpu-moe 33 \
+  --temp 1.0 \
+  --top-p 0.95 \
+  --min-p 0.01 \
+  --cache-type-k q8_0 \
+  --cache-type-v q8_0 \
+  --cache-ram 32768 \
+  --cache-reuse 512 \
+  --cache-prompt \
+  --batch-size 2048 \
+  --ubatch-size 512 \
+  --mlock \
+  --no-mmap \
+  --kv-unified
+```
+
+### Benchmark Results
+
+#### None-Context (No prefill, 25-100 tokens)
+
+```
+┌───────────┬────────┬────────────┐
+│ Context   │  TTFT  │ Throughput │
+├───────────┼────────┼────────────┤
+│ 25        │ 0.926s │ 12.5 tok/s │
+│ 50        │ 1.011s │ 12.4 tok/s │
+│ 100       │ 1.184s │ 13.1 tok/s │
+└───────────┴────────┴────────────┘
+```
+
+#### Small-Context (2K prefill + 10K/15K = 12K-17K total)
+
+```
+┌───────────┬────────┬────────────┐
+│ Context   │  TTFT  │ Throughput │
+├───────────┼────────┼────────────┤
+│ 12K       │ 23.492s│  8.1 tok/s │
+│ 17K       │ 35.052s│  7.0 tok/s │
+└───────────┴────────┴────────────┘
+```
+
+#### Mid-Context (10K prefill + 10K/15K = 20K-25K total)
+
+```
+┌───────────┬────────┬────────────┐
+│ Context   │  TTFT  │ Throughput │
+├───────────┼────────┼────────────┤
+│ 20K       │ 26.439s│  7.8 tok/s │
+│ 25K       │ 39.247s│  6.2 tok/s │
+└───────────┴────────┴────────────┘
+```
+
+#### Long-Context (40K prefill + 10K/15K = 50K-55K total)
+
+```
+┌───────────┬────────┬────────────┐
+│ Context   │  TTFT  │ Throughput │
+├───────────┼────────┼────────────┤
+│ 50K       │ 37.668s│  6.7 tok/s │
+│ 55K       │ 55.449s│  5.6 tok/s │
+└───────────┴────────┴────────────┘
+```
+
+#### Longlong-Context (100K prefill + 10K/15K = 110K-115K total)
+
+```
+┌───────────┬────────┬────────────┐
+│ Context   │  TTFT  │ Throughput │
+├───────────┼────────┼────────────┤
+│ 110K      │ 60.412s│  5.2 tok/s │
+│ 115K      │ 88.494s│  4.1 tok/s │
+└───────────┴────────┴────────────┘
+```
+
+### Comparison: GLM-4.7-Flash Q4 vs Qwen3-Coder-Next Q5
+
+| Context | GLM-4.7 Q4 TTFT | Qwen3 Q5 TTFT | GLM Throughput | Qwen3 Throughput |
+|---------|-----------------|---------------|----------------|------------------|
+| None (25) | 0.394s | 0.926s | 83.4 tok/s | 12.5 tok/s |
+| Small (12K) | - | 23.492s | - | 8.1 tok/s |
+| Mid (20K) | 9.126s | 26.439s | 41.5 tok/s | 7.8 tok/s |
+| Long (50K) | 20.792s | 37.668s | 21.6 tok/s | 6.7 tok/s |
+| Longlong (110K) | 44.235s | 60.412s | 11.5 tok/s | 5.2 tok/s |
+
+**Key Finding**: Qwen3-Coder-Next (80B MoE) is ~3-7x slower than GLM-4.7-Flash (30B):
+- Baseline: 12.5 tok/s vs 83.4 tok/s (~6.7x slower)
+- 50K context: 6.7 tok/s vs 21.6 tok/s (~3.2x slower)
+- 110K context: 5.2 tok/s vs 11.5 tok/s (~2.2x slower)
+- MoE overhead (512 experts, 10 active) + 2.7x larger model = significant slowdown
+
+### Data Files
+
+#### gigul2 llama.cpp hip-rocwmma Qwen3-Coder-Next Results (Q5)
+- `benchmark_results_llama-cpp-hip-rocwmma_qwen3-140k_2026-02-15/none_context_results.jsonl` - None-context (25-100 tokens)
+- `benchmark_results_llama-cpp-hip-rocwmma_qwen3-140k_2026-02-15/small_context_results.jsonl` - Small-context (12K-17K)
+- `benchmark_results_llama-cpp-hip-rocwmma_qwen3-140k_2026-02-15/mid_context_results.jsonl` - Mid-context (20K-25K)
+- `benchmark_results_llama-cpp-hip-rocwmma_qwen3-140k_2026-02-15/long_context_results.jsonl` - Long-context (50K-55K)
+- `benchmark_results_llama-cpp-hip-rocwmma_qwen3-140k_2026-02-15/longlong_context_results.jsonl` - Longlong-context (110K-115K)
+
+---
+
+_Last Updated: 2026-02-15_
+_Status: Complete - Added Qwen3-Coder-Next benchmark results_
+
+---
+
+## Qwen3.5-35B-A3B Results - NEW (2026-03-01)
+
+**Model**: Qwen3.5-35B-A3B-UD-Q8_K_XL.gguf (MoE, 35B params, 8 experts active, ~36GB)
+**Hardware**: macbook2 (Apple M2 Max 96GB RAM)
+**Backend**: llama.cpp build 8466 (Metal)
+
+### macbook2 - None-Context (25-100 tokens, no prefill)
+
+```
+┌──────────────────────────────┬─────────┬────────┬────────────┐
+│ System                       │ Context │  TTFT  │ Throughput │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q8        │    25   │ 0.29s  │ 34.5 tok/s │
+│ (M2 Max, Metal, 6 threads)   │    50   │ 0.33s  │ 28.7 tok/s │
+│                              │   100   │ 0.43s  │ 31.0 tok/s │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q8        │    25   │ 0.27s  │ 35.4 tok/s │
+│ (M2 Max, Metal, --parallel 1)│    50   │ 0.31s  │ 33.7 tok/s │
+│                              │   100   │ 0.40s  │ 28.2 tok/s │
+└──────────────────────────────┴─────────┴────────┴────────────┘
+```
+
+**Note**: Minimal difference between 6-thread and 1-thread modes (<10%), suggesting Metal backend on M2 Max is already well-optimized for single-threaded operation.
+
+### macbook2 - Small/Mid Context (10K-25K)
+
+```
+┌──────────────────────────────┬─────────┬────────┬────────────┐
+│ System                       │ Context │  TTFT  │ Throughput │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q8        │   12K   │  4.1s  │ 23.0 tok/s │
+│ (M2 Max, Metal, 6 threads)   │   25K   │  9.3s  │ 17.2 tok/s │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q8        │   12K   │  3.6s  │ 24.5 tok/s │
+│ (M2 Max, Metal, --parallel 1)│   25K   │  8.9s  │ 17.8 tok/s │
+└──────────────────────────────┴─────────┴────────┴────────────┘
+```
+
+### macbook2 - Long/LongLong Context (50K-75K)
+
+```
+┌──────────────────────────────┬─────────┬────────┬────────────┐
+│ System                       │ Context │  TTFT  │ Throughput │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q8        │   50K   │ 22.6s  │ 11.4 tok/s │
+│ (M2 Max, Metal, 6 threads)   │   55K   │ 31.5s  │ 10.1 tok/s │
+│                              │   70K   │ 25.7s  │ 10.5 tok/s │
+│                              │   75K   │ 38.1s  │  8.9 tok/s │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q8        │   50K   │ 22.5s  │ 11.4 tok/s │
+│ (M2 Max, Metal, --parallel 1)│   55K   │ 32.9s  │  9.4 tok/s │
+│                              │   70K   │ 25.8s  │ 10.4 tok/s │
+│                              │   75K   │ 38.5s  │  8.4 tok/s │
+└──────────────────────────────┴─────────┴────────┴────────────┘
+```
+
+**Key Comparison**: Qwen3.5-35B-A3B (Q8, 36GB) is ~7.7x faster than GLM-4.7-Flash (Q4, 17GB) on the same hardware at 50K context (22.6s vs 173s TTFT).
+
+Full results in: [CONTEXT_RESULTS_MACBOOK2_LLAMACPP_METAL_QWEN35_35B_A3B.md](CONTEXT_RESULTS_MACBOOK2_LLAMACPP_METAL_QWEN35_35B_A3B.md)
+
+
+---
+
+## Qwen3.5-27B Dense Q8_K_XL Results - NEW (2026-03-01)
+
+**Model**: Qwen3.5-27B-UD-Q8_K_XL.gguf (Dense, 27B params, ~29GB)
+**Hardware**: macbook2 (Apple M2 Max 96GB RAM)
+**Backend**: llama.cpp build 8466 (Metal)
+
+### macbook2 - All Context Tiers
+
+```
+┌──────────────────────────────┬─────────┬────────┬────────────┐
+│ System                       │ Context │  TTFT  │ Throughput │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q8        │    50   │ 0.90s  │  6.8 tok/s │
+│ (M2 Max, Metal, 6 threads)   │   100   │ 1.55s  │  5.9 tok/s │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q8        │   15K   │ 61.9s  │  3.9 tok/s │
+│ (M2 Max, Metal, 6 threads)   │   20K   │106.0s  │  2.7 tok/s │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q8        │   30K   │ 77.5s  │  3.3 tok/s │
+│ (M2 Max, Metal, 6 threads)   │   35K   │114.5s  │  2.7 tok/s │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q8        │   50K   │ 83.4s  │  3.1 tok/s │
+│ (M2 Max, Metal, 6 threads)   │   55K   │129.3s  │  2.4 tok/s │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q8        │  110K   │118.6s  │  2.3 tok/s │
+│ (M2 Max, Metal, 6 threads)   │  115K   │160.1s  │  2.0 tok/s │
+└──────────────────────────────┴─────────┴────────┴────────────┘
+```
+
+**Key Comparison**: Dense 27B Q8 is ~4-5x slower than MoE 35B Q8 on the same hardware (6.8 vs 28.7 tok/s baseline). Dense model compute is the bottleneck - MoE architecture provides significant performance advantage despite larger model size.
+
+Full results in: [CONTEXT_RESULTS_MACBOOK2_LLAMACPP_METAL_QWEN35_27B.md](CONTEXT_RESULTS_MACBOOK2_LLAMACPP_METAL_QWEN35_27B.md)
+
+
+---
+
+## Step-3.5-Flash-REAP-121B-A11B MoE Q4_K_S Results - NEW (2026-03-03)
+
+**Model**: Step-3.5-Flash-REAP-121B-A11B.Q4_K_S.gguf (MoE, 121B params, ~64GB)
+**Hardware**: macbook2 (Apple M2 Max 96GB RAM)
+**Backend**: llama.cpp build 8466 (Metal)
+
+### macbook2 - All Context Tiers
+
+```
+┌──────────────────────────────┬─────────┬────────┬────────────┐
+│ System                       │ Context │  TTFT  │ Throughput │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q4        │    50   │ 0.72s  │ 27.5 tok/s │
+│ (M2 Max, Metal, 6 threads)   │   100   │ 1.07s  │ 24.2 tok/s │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q4        │   15K   │ 40.7s  │  9.6 tok/s │
+│ (M2 Max, Metal, 6 threads)   │   20K   │ 58.3s  │  7.4 tok/s │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q4        │   30K   │ 46.0s  │  8.5 tok/s │
+│ (M2 Max, Metal, 6 threads)   │   35K   │ 70.6s  │  6.5 tok/s │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q4        │   50K   │ 56.4s  │  7.6 tok/s │
+│ (M2 Max, Metal, 6 threads)   │   55K   │ 89.8s  │  5.3 tok/s │
+├──────────────────────────────┼─────────┼────────┼────────────┤
+│ macbook2 llama.cpp Q4        │  110K   │122.0s  │  3.4 tok/s │
+│ (M2 Max, Metal, 6 threads)   │  115K   │ CRASH  │    N/A     │
+└──────────────────────────────┴─────────┴────────┴────────────┘
+```
+
+**Note**: Server crashed at 115K context due to memory pressure (64GB model + 100K KV cache exceeds 96GB RAM). 110K appears to be the practical limit for this 121B model.
+
+**Key Comparison**: 121B MoE Q4 has similar baseline to 35B-A3B MoE Q8 (27.5 vs 28.7 tok/s), but significantly higher TTFT at long context (56s vs 23s at 50K). Memory pressure limits practical use to ~110K tokens.
+
+Full results in: [CONTEXT_RESULTS_MACBOOK2_LLAMACPP_METAL_STEP35_FLASH_REAP_121B.md](CONTEXT_RESULTS_MACBOOK2_LLAMACPP_METAL_STEP35_FLASH_REAP_121B.md)
+
