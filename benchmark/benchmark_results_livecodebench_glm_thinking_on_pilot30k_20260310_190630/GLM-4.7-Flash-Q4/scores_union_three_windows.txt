@@ -1,0 +1,5 @@
+subset_size=3
+overall_pass@1=0.3333
+easy_pass@1=0.0000 count=0
+medium_pass@1=0.5000 count=2
+hard_pass@1=0.0000 count=1

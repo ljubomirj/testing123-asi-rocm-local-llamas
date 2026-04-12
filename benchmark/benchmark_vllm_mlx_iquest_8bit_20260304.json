@@ -1,0 +1,77 @@
+{
+  "model": "IQuest-Coder-V1-14B-Thinking-MLX-8bit",
+  "url": "http://localhost:8081/v1/chat/completions",
+  "timestamp": "20260304",
+  "results": [
+    {
+      "tier": "None",
+      "total_tokens": 50,
+      "prefill_tokens": 0,
+      "ttft": 3.1876707077026367,
+      "throughput": 16.31285184958033
+    },
+    {
+      "tier": "None",
+      "total_tokens": 100,
+      "prefill_tokens": 0,
+      "ttft": 7.04277491569519,
+      "throughput": 14.482927712582109
+    },
+    {
+      "tier": "Small",
+      "total_tokens": 15000,
+      "prefill_tokens": 5000,
+      "ttft": 0.0,
+      "throughput": 0.0
+    },
+    {
+      "tier": "Small",
+      "total_tokens": 20000,
+      "prefill_tokens": 5000,
+      "ttft": 0.0,
+      "throughput": 0.0
+    },
+    {
+      "tier": "Mid",
+      "total_tokens": 30000,
+      "prefill_tokens": 20000,
+      "ttft": 0.0,
+      "throughput": 0.0
+    },
+    {
+      "tier": "Mid",
+      "total_tokens": 35000,
+      "prefill_tokens": 20000,
+      "ttft": 0.0,
+      "throughput": 0.0
+    },
+    {
+      "tier": "Long",
+      "total_tokens": 50000,
+      "prefill_tokens": 40000,
+      "ttft": 0.0,
+      "throughput": 0.0
+    },
+    {
+      "tier": "Long",
+      "total_tokens": 55000,
+      "prefill_tokens": 40000,
+      "ttft": 0.0,
+      "throughput": 0.0
+    },
+    {
+      "tier": "Longlong",
+      "total_tokens": 110000,
+      "prefill_tokens": 100000,
+      "ttft": 0.0,
+      "throughput": 0.0
+    },
+    {
+      "tier": "Longlong",
+      "total_tokens": 115000,
+      "prefill_tokens": 100000,
+      "ttft": 0.0,
+      "throughput": 0.0
+    }
+  ]
+}

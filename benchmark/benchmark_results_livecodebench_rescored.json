@@ -1,0 +1,131 @@
+{
+  "Qwen3.5-35B-A3B-IQ4": {
+    "windows": [
+      {
+        "pass@1": 0.7777777777777778,
+        "easy_pass@1": 1.0,
+        "medium_pass@1": 0.7894736842105263,
+        "hard_pass@1": 0.0,
+        "count": 36,
+        "start": "2024-01-01",
+        "end": "2024-02-29",
+        "limit": 36
+      },
+      {
+        "pass@1": 0.7727272727272727,
+        "easy_pass@1": 1.0,
+        "medium_pass@1": 0.7222222222222222,
+        "hard_pass@1": 0.5,
+        "count": 44,
+        "start": "2024-05-01",
+        "end": "2024-06-30",
+        "limit": 44
+      },
+      {
+        "pass@1": 0.4166666666666667,
+        "easy_pass@1": 1.0,
+        "medium_pass@1": 0.5,
+        "hard_pass@1": 0.14285714285714285,
+        "count": 12,
+        "start": "2025-04-01",
+        "end": "2025-05-31",
+        "limit": 12
+      }
+    ],
+    "union": {
+      "pass@1": 0.7282608695652174,
+      "easy_pass@1": 1.0,
+      "medium_pass@1": 0.7435897435897436,
+      "hard_pass@1": 0.2857142857142857,
+      "count": 92
+    },
+    "nonempty_code_first_sample": 89,
+    "total_rows": 92
+  },
+  "Qwen3.5-27B-Q4": {
+    "windows": [
+      {
+        "pass@1": 0.5833333333333334,
+        "easy_pass@1": 0.9230769230769231,
+        "medium_pass@1": 0.42105263157894735,
+        "hard_pass@1": 0.25,
+        "count": 36,
+        "start": "2024-01-01",
+        "end": "2024-02-29",
+        "limit": 36
+      },
+      {
+        "pass@1": 0.6818181818181818,
+        "easy_pass@1": 1.0,
+        "medium_pass@1": 0.6666666666666666,
+        "hard_pass@1": 0.2,
+        "count": 44,
+        "start": "2024-05-01",
+        "end": "2024-06-30",
+        "limit": 44
+      },
+      {
+        "pass@1": 0.3333333333333333,
+        "easy_pass@1": 1.0,
+        "medium_pass@1": 0.0,
+        "hard_pass@1": 0.14285714285714285,
+        "count": 12,
+        "start": "2025-04-01",
+        "end": "2025-05-31",
+        "limit": 12
+      }
+    ],
+    "union": {
+      "pass@1": 0.5978260869565217,
+      "easy_pass@1": 0.96875,
+      "medium_pass@1": 0.5128205128205128,
+      "hard_pass@1": 0.19047619047619047,
+      "count": 92
+    },
+    "nonempty_code_first_sample": 65,
+    "total_rows": 92
+  },
+  "Qwen3.5-9B-Q8": {
+    "windows": [
+      {
+        "pass@1": 0.5833333333333334,
+        "easy_pass@1": 1.0,
+        "medium_pass@1": 0.42105263157894735,
+        "hard_pass@1": 0.0,
+        "count": 36,
+        "start": "2024-01-01",
+        "end": "2024-02-29",
+        "limit": 36
+      },
+      {
+        "pass@1": 0.5681818181818182,
+        "easy_pass@1": 0.875,
+        "medium_pass@1": 0.6111111111111112,
+        "hard_pass@1": 0.0,
+        "count": 44,
+        "start": "2024-05-01",
+        "end": "2024-06-30",
+        "limit": 44
+      },
+      {
+        "pass@1": 0.3333333333333333,
+        "easy_pass@1": 1.0,
+        "medium_pass@1": 0.5,
+        "hard_pass@1": 0.0,
+        "count": 12,
+        "start": "2025-04-01",
+        "end": "2025-05-31",
+        "limit": 12
+      }
+    ],
+    "union": {
+      "pass@1": 0.5434782608695652,
+      "easy_pass@1": 0.9375,
+      "medium_pass@1": 0.5128205128205128,
+      "hard_pass@1": 0.0,
+      "count": 92
+    },
+    "nonempty_code_first_sample": 60,
+    "total_rows": 92
+  }
+}

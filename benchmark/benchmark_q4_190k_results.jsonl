@@ -1,0 +1,2 @@
+{"run_id": 1, "prompt_tokens": 30000, "prefill_tokens": 160000, "total_context_tokens": 190000, "max_tokens": 256, "ttft_sec": null, "chars_per_sec": null, "tokens_per_sec": null, "response_chars": 0, "response_tokens": 0, "total_time_sec": 0}
+{"run_id": 2, "prompt_tokens": 30000, "prefill_tokens": 160000, "total_context_tokens": 190000, "max_tokens": 256, "ttft_sec": null, "chars_per_sec": null, "tokens_per_sec": null, "response_chars": 0, "response_tokens": 0, "total_time_sec": 0}

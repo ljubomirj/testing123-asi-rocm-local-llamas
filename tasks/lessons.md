@@ -1,0 +1,11 @@
+# Lessons
+
+- The macbook2 Qwen wrapper is not using speculative decoding just because `SERVER_ARGS_DRAFT` exists; verify which argument array is actually executed before interpreting benchmark deltas.
+- For llama.cpp thinking-capable models, verify the startup log line `chat template, thinking = X` before benchmarking; a template override, assistant prefill, or CLI reasoning flag can silently flip the mode you think you are measuring.
+- Nemotron-Cascade-2-30B-A3B on llama.cpp Metal was faster with native thinking enabled than with the forced instruct/no-thinking path that used assistant-prefill `<think></think>`, so benchmark both modes instead of assuming thinking adds latency.
+- In this repo, keep raw benchmark artifacts under `runs/` instead of a temp directory so the outputs survive across sessions and can be linked from later docs.
+- For local LiveCodeBench runs on thinking models, a Qwen-style `max_tokens=100000` cap can make the benchmark effectively non-terminating. If a thinking model starts drifting into very long completions, replan to a practical ceiling such as `16384` and document the apples-to-oranges caveat against the non-thinking Qwen baseline.
+- For Nemotron on local LiveCodeBench, bounded thinking can dominate both extremes: `thinking off` was fastest but too weak, while unbounded thinking was too slow. A `4096` reasoning budget inside a `10000` total cap improved both accuracy and runtime.
+- For JANG models on Apple Silicon, the key requirement is the `jang` runtime layered on top of MLX, not a separate model-specific fork you must install manually. If `jang`, `mlx`, and `mlx-lm` are already present, first try loading the cached local snapshot path directly before assuming more setup is needed.
+- The repo-local `LiveCodeBench` checkout has its own model registry. When adding a new local llama.cpp alias like `Nemotron-Cascade-2-30B-A3B-Q8`, update `LiveCodeBench/lcb_runner/lm_styles.py` before launching or the run will fail with `KeyError` even if the server alias and launcher script are correct.
+- For macbook2 Metal Nemotron reruns, a bigger quant is not automatically a better operating point. The Q8 `1M / 16K / 8K` rerun matched the earlier Q6 bounded-thinking score but cost about `1.50x` the runtime, so record the runtime tradeoff before treating Q8 as an upgrade.

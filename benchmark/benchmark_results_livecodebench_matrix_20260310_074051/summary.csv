@@ -1,0 +1,2 @@
+model,model_path,total_seconds,problems,problems_per_minute,subset_dir,server_log
+Qwen3.5-35B-A3B-IQ4,/home/ljubomir/llama.cpp/models/Qwen3.5-35B-A3B-UD-IQ4_XS.gguf,3502,92,1.58,/home/ljubomir/rocm-glm-4.7-flash/benchmark_results_livecodebench_matrix_20260310_074051/Qwen3.5-35B-A3B-IQ4_subset,/home/ljubomir/rocm-glm-4.7-flash/benchmark_results_livecodebench_matrix_20260310_074051/Qwen3.5-35B-A3B-IQ4.server.log

@@ -1,0 +1,4 @@
+model=Qwen3.5-35B-A3B-IQ4
+best_reasoning_format=deepseek
+best_max_tokens=5000
+server_log=/home/ljubomir/rocm-glm-4.7-flash/benchmark_results_livecodebench_thinking_ab_20260311_170646/Qwen3.5-35B-A3B-IQ4/server.log

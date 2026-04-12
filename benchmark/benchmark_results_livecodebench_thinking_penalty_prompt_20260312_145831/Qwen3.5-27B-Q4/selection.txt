@@ -1,0 +1,5 @@
+MODEL_NAME=Qwen3.5-27B-Q4
+MODEL_PATH=/home/ljubomir/llama.cpp/models/Qwen3.5-27B-UD-Q4_K_XL.gguf
+PILOT_IDS_FILE=/home/ljubomir/rocm-glm-4.7-flash/benchmark_results_livecodebench_thinking_ab_20260311_170646/pilot_question_ids.txt
+REASONING_FORMAT=deepseek
+MAX_TOKENS=5000
