@@ -1,0 +1,37 @@
+44
+Pass@1 =  0.8863636363636364
+Easy Pass@1 =  1.0
+Medium Pass@1 =  0.8888888888888888
+Hard Pass@1 =  0.7
+Pass@5 =  1.0
+Easy Pass@5 =  1.0
+Medium Pass@5 =  1.0
+Hard Pass@5 =  1.0
+Pass@10 =  1.0
+Easy Pass@10 =  1.0
+Medium Pass@10 =  1.0
+Hard Pass@10 =  1.0
+Pass@25 =  1.0
+Easy Pass@25 =  1.0
+Medium Pass@25 =  1.0
+Hard Pass@25 =  1.0
+Pass@50 =  1.0
+Easy Pass@50 =  1.0
+Medium Pass@50 =  1.0
+Hard Pass@50 =  1.0
+Pass@100 =  1.0
+Easy Pass@100 =  1.0
+Medium Pass@100 =  1.0
+Hard Pass@100 =  1.0
+Pass@150 =  1.0
+Easy Pass@150 =  1.0
+Medium Pass@150 =  1.0
+Hard Pass@150 =  1.0
+Pass@200 =  1.0
+Easy Pass@200 =  1.0
+Medium Pass@200 =  1.0
+Hard Pass@200 =  1.0
+Pass@1: 0.8863636363636364
+Easy Pass@1: 1.0
+Medium Pass@1: 0.8888888888888888
+Hard Pass@1: 0.7
