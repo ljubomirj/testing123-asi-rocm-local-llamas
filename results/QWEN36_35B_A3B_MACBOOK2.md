@@ -284,3 +284,111 @@ Full results in individual files:
 - `LCB_RESULTS_QWEN36_35B_A3B_MACBOOK2.md`
 - `LCB_RESULTS_QWEN36_35B_A3B_MACBOOK2_NGRAM_DRAFT.md`
 - `LLAMA_BENCH_QWEN36_35B_A3B_MACBOOK2.md`
+
+---
+
+## MLX 4-Bit Results (mlx_lm.server)
+
+**Date**: 2026-04-19
+
+**Model**: `mlx-community/Qwen3.6-35B-A3B-4bit` (MLX 4-bit quantization)
+
+**Backend**: MLX (Apple Metal), not llama.cpp
+
+### Executive Summary (MLX)
+
+| Test | Result |
+|---|---:|
+| **Short context speed** | 44-75 tok/s (with cache) |
+| **Long context speed** | 2 tok/s at 40K (cache miss) |
+| **100K context** | **CRASHES** (Metal GPU error) |
+| **Prompt cache** | Excellent (3-4× speedup on repeats) |
+
+### MLX Server Configuration
+
+```bash
+mlx_lm.server \
+  --model mlx-community/Qwen3.6-35B-A3B-4bit \
+  --trust-remote-code \
+  --port 8081 \
+  --max-tokens 10000 \
+  --chat-template-args '{"enable_thinking":true,"preserve_thinking":true}' \
+  --prompt-cache-size 16 \
+  --prompt-cache-bytes 12GB \
+  --decode-concurrency 4 \
+  --prompt-concurrency 2
+```
+
+### CONTEXT Test (MLX 4-bit)
+
+| Total context | Prefill | Prompt | TTFT | Throughput |
+|---|---:|---:|---:|---:|
+| 50 | 0 | 50 | 2.91s | 68.7 tok/s |
+| 100 | 0 | 100 | 3.19s | 62.7 tok/s |
+| 5010 | 5K | 10 | 3.54s (cached) | 56.2 tok/s* |
+| 5015 | 5K | 15 | 3.74s (cached) | 53.8 tok/s* |
+| 20010 | 20K | 10 | 47.24s | 4.2 tok/s |
+| 20015 | 20K | 15 | 45.16s | 2.1 tok/s |
+| 40010 | 40K | 10 | 101.88s | 2.0 tok/s |
+| 40015 | 40K | 15 | 98.55s | 1.9 tok/s |
+| 100010 | 100K | 10 | **CRASH** | **Metal error** |
+
+\* Cached runs - first run was ~13s, 15 tok/s
+
+**Notes**:
+- Excellent prompt cache: 3-4× speedup on repeated contexts
+- 20K+ contexts: 2-4 tok/s (slow)
+- 40K+ contexts: ~2 tok/s (very slow)
+- **100K context crashes**: `[METAL] Command buffer execution failed: Internal Error`
+- Cache dependency: Performance highly variable based on cache hits
+
+### LLAMA-BENCH Style Test (MLX 4-bit)
+
+| PP | TG | TTFT | PP t/s | TG t/s |
+|---:|---:|--------|--------|--------|
+| 256 | 512 | 5.78s | 44.6 | 68.4 |
+| 512 | 512 | 6.88s | 75.2 | 54.3 |
+| 1024 | 512 | 7.37s | 142.8 | 49.5 |
+| 1024 | 1024 | 6.89s | 148.7 | 51.6 |
+| 2048 | 512 | 10.86s | 202.7 | 40.2 |
+| 2048 | 1024 | 9.60s | 213.4 | 42.3 |
+| 4096 | 512 | 26.25s | 156.0 | 16.0 |
+| 4096 | 1024 | 9.94s | 412.0 | 42.2 |
+| 8192 | 512 | 35.51s | 230.7 | 11.3 |
+
+### Comparison: llama.cpp Q6_K_XL vs MLX 4-bit
+
+| Context | llama.cpp tok/s | MLX tok/s | Winner |
+|---|---:|---:|---:|
+| 50 | 44.4 | 68.7 (cached) | **MLX** (1.5×) |
+| 100 | 40.8 | 62.7 (cached) | **MLX** (1.5×) |
+| 15K | 20.3 | 15-58 (variable) | llama.cpp (stable) |
+| 30K | 18.6 | 2-4 | **llama.cpp** (5-9×) |
+| 50K | 13.5 | 2 | **llama.cpp** (7×) |
+| 100K | 0.6 | **CRASH** | llama.cpp (slow but works) |
+
+### MLX 4-bit Recommendations
+
+**Use MLX when**:
+- Short prompts with cache hits (chat, repeated queries)
+- Sub-10K context sizes
+- Fast inference is critical
+
+**Use llama.cpp when**:
+- Long contexts (>20K)
+- Stable performance required
+- 100K+ contexts needed
+
+### MLX Known Issues
+
+1. **100K context crashes**: Metal GPU driver error at 59392/100025 tokens
+2. **Cache dependency**: Performance varies wildly based on cache hits
+3. **Slow at 20K+**: 2-4 tok/s without cache
+4. **No stability**: Crashes prevent production use for long contexts
+
+### Source Files
+
+MLX results:
+- `CONTEXT_RESULTS_QWEN36_35B_A3B_MACBOOK2_MLX.md`
+- `LLAMA_BENCH_QWEN36_35B_A3B_MACBOOK2_MLX.md`
+
