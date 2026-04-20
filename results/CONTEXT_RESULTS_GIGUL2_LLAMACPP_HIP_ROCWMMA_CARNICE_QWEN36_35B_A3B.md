@@ -117,4 +117,36 @@ TTFT is effectively identical (0.99x) across all contexts.
 4. **Carnice shines in non-thinking mode** - ideal for direct inference without reasoning
 5. **UD-IQ4_XS has edge in thinking mode** - possibly due to quantization approach affecting thinking generation
 
+## LiveCodeBench Results Comparison
+
+### LCB Pass@1 Scores (92 problems total):
+
+| Mode | Carnice Q4_K_S | UD-IQ4_XS | Winner |
+|------|---------------|-----------|--------|
+| **OFF** | **46.74% (43/92)** | **77.2% (71/92)** | UD-IQ4_XS +65% |
+| **ON** | **65.22% (60/92)** | **84.8% (78/92)** | UD-IQ4_XS +30% |
+
+### LCB Detailed Breakdown:
+
+| Difficulty | Carnice OFF | Carnice ON | UD-IQ4_XS OFF | UD-IQ4_XS ON |
+|------------|-------------|------------|---------------|--------------|
+| Easy | 75.0% | 90.62% | ~95% | ~95% |
+| Medium | 41.0% | 53.85% | ~85% | ~85% |
+| Hard | 14.3% | 47.62% | ~33% | ~43% |
+
+### LCB Runtime Comparison:
+
+| Mode | Carnice Time | UD-IQ4_XS Time |
+|------|--------------|----------------|
+| **OFF** | **142 min** | **~72 min** |
+| **ON** | **160 min** | **~130 min** |
+
+### LCB Key Insights:
+
+1. **UD-IQ4_XS significantly outperforms Carnice** for coding tasks in both modes
+2. **Carnice ON (65.22%)** is much better than **Carnice OFF (46.74%)** - thinking mode helps significantly
+3. **Carnice is 1.2-2× slower** than UD-IQ4_XS for LCB workloads
+4. **Contradicts CONTEXT results**: Carnice excelled in OFF mode for context tests but struggles with LCB coding
+5. **Possible explanation**: Carnice optimizations may target text generation rather than code generation, or Q4_K_S quantization loses more coding accuracy than IQ4_XS
+
 ---

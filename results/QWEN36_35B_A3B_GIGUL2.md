@@ -383,10 +383,41 @@ Full results in individual files:
 
 ### Comparison: Carnice Q4_K_S vs UD-IQ4_XS
 
-| Metric | Carnice Q4_K_S | UD-IQ4_XS |
-|--------|----------------|-----------|
-| TG speed (typical) | 58-68 t/s | 53-60 t/s |
-| Context reliability | 6/6 good runs | OFF mode had failures |
-| Quant size | ~19.9GB | ~19GB |
+#### CONTEXT Test Results (Token Generation Speed):
 
-The Carnice variant performs similarly to the UD-IQ4_XS variant in terms of throughput, with improved reliability in OFF mode testing.
+| Metric | Carnice OFF | UD-IQ4_XS OFF | Carnice ON | UD-IQ4_XS ON |
+|--------|-------------|---------------|-----------|--------------|
+| None (50-100 tok) | 63.9 t/s | 36.1 t/s | 54.8 t/s | 60.5 t/s |
+| Small 5K | 39.4 t/s | 31.6 t/s | 34.9 t/s | 36.7 t/s |
+| Mid 20K | 27.2 t/s | 10.4 t/s | 28.3 t/s | 30.3 t/s |
+| Long 40K | 18.9 t/s | 16.5 t/s | 20.1 t/s | 21.9 t/s |
+| LongLong 100K | 13.1 t/s | 9.2 t/s | 11.4 t/s | 13.0 t/s |
+
+**Context Key Finding**: Carnice Q4_K_S significantly outperforms UD-IQ4_XS in OFF mode (+25-161% faster), while UD-IQ4_XS has a slight edge in ON mode (~5-14% faster).
+
+#### LCB Test Results (Coding Accuracy):
+
+| Metric | Carnice OFF | Carnice ON | UD-IQ4_XS OFF | UD-IQ4_XS ON |
+|--------|-------------|------------|---------------|--------------|
+| **Overall Pass@1** | **46.74% (43/92)** | **65.22% (60/92)** | **77.2% (71/92)** | **84.8% (78/92)** |
+| Easy | 75.0% | 90.62% | ~95% | ~95% |
+| Medium | 41.0% | 53.85% | ~85% | ~85% |
+| Hard | 14.3% | 47.62% | ~33% | ~43% |
+| **Total Time** | **142 min** | **160 min** | **~72 min** | **~130 min** |
+
+**LCB Key Finding**: UD-IQ4_XS significantly outperforms Carnice for coding tasks in both modes. This contradicts the CONTEXT test results where Carnice excelled in OFF mode.
+
+#### Summary Table:
+
+| Metric | Carnice Q4_K_S | UD-IQ4_XS | Winner |
+|--------|----------------|-----------|--------|
+| **OFF Context Speed** | **Excellent** | Good | Carnice (+77% at small context) |
+| **ON Context Speed** | Good | **Excellent** | UD-IQ4_XS (+5-14%) |
+| **OFF LCB Accuracy** | Poor (47%) | **Good (77%)** | UD-IQ4_XS (+65%) |
+| **ON LCB Accuracy** | Fair (65%) | **Excellent (85%)** | UD-IQ4_XS (+30%) |
+| **Model Size** | ~19.9GB | ~19GB | Similar |
+
+**Recommendation**: 
+- **For text/chat workloads**: Carnice Q4_K_S in OFF mode provides excellent speed
+- **For coding workloads**: UD-IQ4_XS is superior in both accuracy and speed
+- The Carnice variant appears optimized for text generation rather than code generation
