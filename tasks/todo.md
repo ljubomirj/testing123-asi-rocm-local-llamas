@@ -1,5 +1,17 @@
 # Todo
 
+## 2026-06-13 Public Benchmark Narrative And Personal Site
+
+- [x] Inventory benchmark evidence across ROCm, Metal/MLX, llama.cpp, ds4, and related repos.
+- [x] Collect relevant public voice/context from HN, X history, and local logBook material.
+- [x] Write a public-facing root README.md that connects hardware, runtimes, models, tasks, and measured results.
+- [x] Verify the README contains no private paths, credentials, or private-only claims.
+- [ ] Refresh the public-subset git view and publish the narrative/results when verified.
+- [x] Add a curated important-repositories section to `~/ljubomirj.github.io/post-ljubomirj.html`.
+- [x] Verify the personal page markup and links.
+- [x] Document the current state and a safe follow-up audit for potentially public `LJ-*` / `LJ-wiki` material.
+- [ ] Commit and push the personal-site change after review.
+
 ## 2026-03-26 Qwen35 Recheck
 
 - [x] Identify the old generated-data / forced-context benchmark matrix for Qwen3.5-35B-A3B on macbook2.
